@@ -65,34 +65,16 @@ static bool
 box_drawing_has_vertical_stroke(char32_t wc)
 {
     switch (wc) {
-    case U'│': case U'┃': case U'║':
-    case U'┆': case U'┇': case U'┊': case U'┋':
-    case U'┌': case U'┍': case U'┎': case U'┏':
-    case U'┐': case U'┑': case U'┒': case U'┓':
-    case U'└': case U'┕': case U'┖': case U'┗':
-    case U'┘': case U'┙': case U'┚': case U'┛':
-    case U'├': case U'┝': case U'┞': case U'┟':
-    case U'┠': case U'┡': case U'┢': case U'┣':
-    case U'┤': case U'┥': case U'┦': case U'┧':
-    case U'┨': case U'┩': case U'┪': case U'┫':
-    case U'┬': case U'┭': case U'┮': case U'┯':
-    case U'┰': case U'┱': case U'┲': case U'┳':
-    case U'┴': case U'┵': case U'┶': case U'┷':
-    case U'┸': case U'┹': case U'┺': case U'┻':
-    case U'┼': case U'┽': case U'┾': case U'┿':
-    case U'╀': case U'╁': case U'╂': case U'╃':
-    case U'╄': case U'╅': case U'╆': case U'╇':
-    case U'╈': case U'╉': case U'╊': case U'╋':
-    case U'╒': case U'╓': case U'╔':
-    case U'╕': case U'╖': case U'╗':
-    case U'╘': case U'╙': case U'╚':
-    case U'╛': case U'╜': case U'╝':
-    case U'╞': case U'╟': case U'╠':
-    case U'╡': case U'╢': case U'╣':
-    case U'╤': case U'╥': case U'╦':
-    case U'╧': case U'╨': case U'╩':
-    case U'╪': case U'╫': case U'╬':
-    case U'╎': case U'╏':
+    case U'║':
+    case U'╔':
+    case U'╗':
+    case U'╚':
+    case U'╝':
+    case U'╠':
+    case U'╣':
+    case U'╦':
+    case U'╩':
+    case U'╬':
         return true;
     default:
         return false;
@@ -102,7 +84,22 @@ box_drawing_has_vertical_stroke(char32_t wc)
 static bool
 is_transparent_separator(char32_t wc)
 {
-    return wc >= GLYPH_BOX_DRAWING_FIRST && wc <= GLYPH_BOX_DRAWING_LAST;
+    switch (wc) {
+    case U'═':
+    case U'║':
+    case U'╔':
+    case U'╗':
+    case U'╚':
+    case U'╝':
+    case U'╠':
+    case U'╣':
+    case U'╦':
+    case U'╩':
+    case U'╬':
+        return true;
+    default:
+        return false;
+    }
 }
 
 static bool
