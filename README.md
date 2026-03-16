@@ -5,6 +5,7 @@ This is a foot fork with some minor UX changes that I like. The original source,
 Changes:
 - tmux pane separators can be rendered as transparent gaps. separator glyphs punch through completely, and columns that look like pane borders for almost the full height of the terminal are widened and made transparent across the whole column. this is aimed at `tmux` with `pane-border-lines double`, so panes can read more like separate Hyprland windows
   - one missing row is tolerated when detecting a full-height border column, which is mainly for the tmux status bar
+  - if a fully transparent separator touches the edge of the terminal grid, the outer window padding is punched through on that edge too, so the gap stays clean all the way to the border
   - in hyprland, disabling shadows and borders is recommended
 
 Install:

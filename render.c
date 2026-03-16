@@ -1511,6 +1511,78 @@ render_margin(struct terminal *term, struct buffer *buf,
     }
 }
 
+static bool
+cell_is_fully_transparent(const struct terminal *term, const struct row *row, int col)
+{
+    if (term->render.widenable_cols != NULL && term->render.widenable_cols[col])
+        return true;
+    return is_transparent_separator(row->cells[col].wc);
+}
+
+static void
+render_transparent_edge_padding(struct terminal *term, pixman_image_t *pix,
+                                pixman_region32_t *damage)
+{
+    if (term->rows <= 0 || term->cols <= 0)
+        return;
+
+    const bool gamma_correct = wayl_do_linear_blending(term->wl, term->conf);
+    const pixman_color_t transparent = color_hex_to_pixman_with_alpha(0, 0, gamma_correct);
+    const struct row *top_row = grid_row_in_view(term->grid, 0);
+    const struct row *bottom_row = grid_row_in_view(term->grid, term->rows - 1);
+
+    if (term->margins.top > 0) {
+        for (int col = 0; col < term->cols; col++) {
+            if (!cell_is_fully_transparent(term, top_row, col))
+                continue;
+
+            const int x = render_x_for_col(term, col);
+            const int width = render_width_for_cols(term, col, 1);
+            pixman_image_fill_rectangles(
+                PIXMAN_OP_SRC, pix, &transparent, 1,
+                &(pixman_rectangle16_t){x, 0, width, term->margins.top});
+            pixman_region32_union_rect(damage, damage, x, 0, width, term->margins.top);
+        }
+    }
+
+    if (term->margins.bottom > 0) {
+        const int y = term->height - term->margins.bottom;
+        for (int col = 0; col < term->cols; col++) {
+            if (!cell_is_fully_transparent(term, bottom_row, col))
+                continue;
+
+            const int x = render_x_for_col(term, col);
+            const int width = render_width_for_cols(term, col, 1);
+            pixman_image_fill_rectangles(
+                PIXMAN_OP_SRC, pix, &transparent, 1,
+                &(pixman_rectangle16_t){x, y, width, term->margins.bottom});
+            pixman_region32_union_rect(damage, damage, x, y, width, term->margins.bottom);
+        }
+    }
+
+    for (int row_no = 0; row_no < term->rows; row_no++) {
+        const struct row *row = grid_row_in_view(term->grid, row_no);
+        const int y = term->margins.top + row_no * term->cell_height;
+
+        if (term->margins.left > 0 && cell_is_fully_transparent(term, row, 0)) {
+            pixman_image_fill_rectangles(
+                PIXMAN_OP_SRC, pix, &transparent, 1,
+                &(pixman_rectangle16_t){0, y, term->margins.left, term->cell_height});
+            pixman_region32_union_rect(
+                damage, damage, 0, y, term->margins.left, term->cell_height);
+        }
+
+        if (term->margins.right > 0 && cell_is_fully_transparent(term, row, term->cols - 1)) {
+            const int x = term->width - term->margins.right;
+            pixman_image_fill_rectangles(
+                PIXMAN_OP_SRC, pix, &transparent, 1,
+                &(pixman_rectangle16_t){x, y, term->margins.right, term->cell_height});
+            pixman_region32_union_rect(
+                damage, damage, x, y, term->margins.right, term->cell_height);
+        }
+    }
+}
+
 static void
 grid_render_scroll(struct terminal *term, struct buffer *buf,
                    const struct damage *dmg)
@@ -3779,6 +3851,8 @@ grid_render(struct terminal *term)
             render_row(term, buf->pix[0], &damage, row, r, cursor_col);
         }
     }
+
+    render_transparent_edge_padding(term, buf->pix[0], &damage);
 
     /* Signal workers the frame is done */
     if (term->render.workers.count > 0) {
