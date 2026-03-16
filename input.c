@@ -2424,7 +2424,7 @@ mouse_coord_pixel_to_cell(struct seat *seat, const struct terminal *term,
     else if (x >= term->width - term->margins.right)
         seat->mouse.col = term->cols - 1;
     else
-        seat->mouse.col = (x - term->margins.left) / term->cell_width;
+        seat->mouse.col = render_col_from_x(term, x);
 
     if (y < term->margins.top)
         seat->mouse.row = 0;

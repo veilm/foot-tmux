@@ -30,6 +30,7 @@ void render_refresh_urls(struct terminal *term);
 bool render_xcursor_set(
     struct seat *seat, struct terminal *term, enum cursor_shape shape);
 bool render_xcursor_is_valid(const struct seat *seat, const char *cursor);
+int render_col_from_x(const struct terminal *term, int x);
 
 void render_overlay(struct terminal *term);
 

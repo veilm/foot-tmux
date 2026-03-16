@@ -61,6 +61,187 @@ static struct {
 
 static void fdm_hook_refresh_pending_terminals(struct fdm *fdm, void *data);
 
+static bool
+box_drawing_has_vertical_stroke(char32_t wc)
+{
+    switch (wc) {
+    case U'│': case U'┃': case U'║':
+    case U'┆': case U'┇': case U'┊': case U'┋':
+    case U'┌': case U'┍': case U'┎': case U'┏':
+    case U'┐': case U'┑': case U'┒': case U'┓':
+    case U'└': case U'┕': case U'┖': case U'┗':
+    case U'┘': case U'┙': case U'┚': case U'┛':
+    case U'├': case U'┝': case U'┞': case U'┟':
+    case U'┠': case U'┡': case U'┢': case U'┣':
+    case U'┤': case U'┥': case U'┦': case U'┧':
+    case U'┨': case U'┩': case U'┪': case U'┫':
+    case U'┬': case U'┭': case U'┮': case U'┯':
+    case U'┰': case U'┱': case U'┲': case U'┳':
+    case U'┴': case U'┵': case U'┶': case U'┷':
+    case U'┸': case U'┹': case U'┺': case U'┻':
+    case U'┼': case U'┽': case U'┾': case U'┿':
+    case U'╀': case U'╁': case U'╂': case U'╃':
+    case U'╄': case U'╅': case U'╆': case U'╇':
+    case U'╈': case U'╉': case U'╊': case U'╋':
+    case U'╒': case U'╓': case U'╔':
+    case U'╕': case U'╖': case U'╗':
+    case U'╘': case U'╙': case U'╚':
+    case U'╛': case U'╜': case U'╝':
+    case U'╞': case U'╟': case U'╠':
+    case U'╡': case U'╢': case U'╣':
+    case U'╤': case U'╥': case U'╦':
+    case U'╧': case U'╨': case U'╩':
+    case U'╪': case U'╫': case U'╬':
+    case U'╎': case U'╏':
+        return true;
+    default:
+        return false;
+    }
+}
+
+static bool
+is_transparent_separator(char32_t wc)
+{
+    return wc >= GLYPH_BOX_DRAWING_FIRST && wc <= GLYPH_BOX_DRAWING_LAST;
+}
+
+static bool
+render_separator_geometry_prepare(struct terminal *term)
+{
+    if (term->cols <= 0)
+        return false;
+
+    if (term->render.col_geometry_size < term->cols + 1) {
+        int *new_x = malloc((term->cols + 1) * sizeof(term->render.col_x[0]));
+        int *new_w = malloc(term->cols * sizeof(term->render.col_width[0]));
+        uint8_t *new_sep = malloc(term->cols * sizeof(term->render.widenable_cols[0]));
+
+        if (new_x == NULL || new_w == NULL || new_sep == NULL) {
+            free(new_x);
+            free(new_w);
+            free(new_sep);
+            return false;
+        }
+
+        free(term->render.col_x);
+        free(term->render.col_width);
+        free(term->render.widenable_cols);
+
+        term->render.col_x = new_x;
+        term->render.col_width = new_w;
+        term->render.widenable_cols = new_sep;
+        term->render.col_geometry_size = term->cols + 1;
+    }
+
+    term->render.separator_extra_width = 0;
+    memset(term->render.widenable_cols, 0, term->cols * sizeof(term->render.widenable_cols[0]));
+
+    int widenable_count = 0;
+    const int allowed_misses = term->rows > 1 ? 1 : 0;
+
+    for (int col = 0; col < term->cols; col++) {
+        int hits = 0;
+
+        for (int row = 0; row < term->rows; row++) {
+            const struct row *grid_row = grid_row_in_view(term->grid, row);
+            if (box_drawing_has_vertical_stroke(grid_row->cells[col].wc))
+                hits++;
+        }
+
+        if (term->rows - hits <= allowed_misses) {
+            term->render.widenable_cols[col] = true;
+            widenable_count++;
+        }
+    }
+
+    if (widenable_count == 0) {
+        for (int col = 0; col < term->cols; col++)
+            term->render.col_width[col] = term->cell_width;
+    } else {
+        const int non_widenable_count = term->cols - widenable_count;
+        const int requested_extra = term->cell_width;
+        const int max_average_shrink = max(1, term->cell_width / 8);
+        const int max_extra = non_widenable_count > 0
+            ? (non_widenable_count * max_average_shrink) / widenable_count
+            : 0;
+        const int extra = min(requested_extra, max_extra);
+
+        term->render.separator_extra_width = extra;
+
+        int shrink_total = widenable_count * extra;
+        const int shrink_base = non_widenable_count > 0 ? shrink_total / non_widenable_count : 0;
+        int shrink_remainder = non_widenable_count > 0 ? shrink_total % non_widenable_count : 0;
+
+        for (int col = 0; col < term->cols; col++) {
+            int width = term->cell_width;
+
+            if (term->render.widenable_cols[col]) {
+                width += extra;
+            } else if (shrink_total > 0) {
+                const int shrink = shrink_base + (shrink_remainder > 0 ? 1 : 0);
+                width = max(1, width - shrink);
+                if (shrink_remainder > 0)
+                    shrink_remainder--;
+            }
+
+            term->render.col_width[col] = width;
+        }
+    }
+
+    term->render.col_x[0] = term->margins.left;
+    for (int col = 0; col < term->cols; col++)
+        term->render.col_x[col + 1] = term->render.col_x[col] + term->render.col_width[col];
+
+    return true;
+}
+
+static inline int
+render_x_for_col(const struct terminal *term, int col)
+{
+    if (term->render.col_x == NULL || col < 0 || col > term->cols)
+        return term->margins.left + col * term->cell_width;
+    return term->render.col_x[col];
+}
+
+static inline int
+render_width_for_cols(const struct terminal *term, int col, int count)
+{
+    if (term->render.col_x == NULL || count <= 0)
+        return count * term->cell_width;
+    return term->render.col_x[min(term->cols, col + count)] - term->render.col_x[col];
+}
+
+int
+render_col_from_x(const struct terminal *term, int x)
+{
+    if (x < term->margins.left)
+        return 0;
+    if (x >= term->width - term->margins.right)
+        return term->cols - 1;
+
+    if (term->render.col_x == NULL || term->render.col_width == NULL)
+        return (x - term->margins.left) / term->cell_width;
+
+    int rel_x = x;
+    int lo = 0;
+    int hi = term->cols - 1;
+
+    while (lo <= hi) {
+        const int mid = lo + (hi - lo) / 2;
+        const int start = term->render.col_x[mid];
+        const int end = start + term->render.col_width[mid];
+
+        if (rel_x < start)
+            hi = mid - 1;
+        else if (rel_x >= end)
+            lo = mid + 1;
+        else
+            return mid;
+    }
+
+    return min(max(lo, 0), term->cols - 1);
+}
+
 struct renderer *
 render_init(struct fdm *fdm, struct wayland *wayl)
 {
@@ -694,9 +875,9 @@ render_cell(struct terminal *term, pixman_image_t *pix,
     cell->attrs.clean = 1;
     cell->attrs.confined = true;
 
-    int width = term->cell_width;
+    const int width = term->cell_width;
     int height = term->cell_height;
-    const int x = term->margins.left + col * width;
+    const int x = render_x_for_col(term, col);
     const int y = term->margins.top + row_no * height;
 
     uint32_t _fg = 0;
@@ -980,20 +1161,23 @@ render_cell(struct terminal *term, pixman_image_t *pix,
 
     const int cols_left = term->cols - col;
     cell_cols = max(1, min(cell_cols, cols_left));
+    const int cell_span_width = render_width_for_cols(term, col, cell_cols);
 
-    if (base == U'═' || base == U'║' || base == U'╔' || base == U'╗' ||
-        base == U'╚' || base == U'╝' || base == U'╠' || base == U'╣' ||
-        base == U'╦' || base == U'╩' || base == U'╬')
+    if (is_transparent_separator(base))
     {
+        const int transparent_width =
+            term->render.widenable_cols != NULL && term->render.widenable_cols[col]
+            ? cell_span_width
+            : cell_cols * width;
         pixman_color_t transparent = color_hex_to_pixman_with_alpha(0, 0, gamma_correct);
 
         if (damage != NULL)
             pixman_region32_union_rect(
-                damage, damage, x, y, cell_cols * width, height);
+                damage, damage, x, y, transparent_width, height);
 
         pixman_image_fill_rectangles(
             PIXMAN_OP_SRC, pix, &transparent, 1,
-            &(pixman_rectangle16_t){x, y, cell_cols * width, height});
+            &(pixman_rectangle16_t){x, y, transparent_width, height});
         return cell_cols;
     }
 
@@ -1001,7 +1185,7 @@ render_cell(struct terminal *term, pixman_image_t *pix,
      * Determine cells that will bleed into their right neighbor and remember
      * them for cleanup in the next frame.
      */
-    int render_width = cell_cols * width;
+    int render_width = cell_span_width;
     if (term->conf->tweak.overflowing_glyphs &&
         glyph_count > 0 &&
         cols_left > cell_cols)
@@ -1037,7 +1221,7 @@ render_cell(struct terminal *term, pixman_image_t *pix,
     /* Background */
     pixman_image_fill_rectangles(
         PIXMAN_OP_SRC, pix, &bg, 1,
-        &(pixman_rectangle16_t){x, y, cell_cols * width, height});
+        &(pixman_rectangle16_t){x, y, cell_span_width, height});
 
     if (cell->attrs.blink && term->blink.fd < 0) {
         /* TODO: use a custom lock for this? */
@@ -3459,6 +3643,9 @@ grid_render(struct terminal *term)
         cursor.row -= term->grid->view;
         cursor.row &= term->grid->num_rows - 1;
     }
+
+    if (!render_separator_geometry_prepare(term))
+        LOG_WARN("failed to prepare separator geometry");
 
     if (term->conf->tweak.overflowing_glyphs) {
         /*

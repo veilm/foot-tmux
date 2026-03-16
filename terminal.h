@@ -733,6 +733,12 @@ struct terminal {
 
         size_t search_glyph_offset;
 
+        int *col_x;
+        int *col_width;
+        uint8_t *widenable_cols;
+        int col_geometry_size;
+        int separator_extra_width;
+
         struct timespec input_time;
     } render;
 
