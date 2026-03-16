@@ -981,7 +981,10 @@ render_cell(struct terminal *term, pixman_image_t *pix,
     const int cols_left = term->cols - col;
     cell_cols = max(1, min(cell_cols, cols_left));
 
-    if (base >= GLYPH_BOX_DRAWING_FIRST && base <= GLYPH_BOX_DRAWING_LAST) {
+    if (base == U'═' || base == U'║' || base == U'╔' || base == U'╗' ||
+        base == U'╚' || base == U'╝' || base == U'╠' || base == U'╣' ||
+        base == U'╦' || base == U'╩' || base == U'╬')
+    {
         pixman_color_t transparent = color_hex_to_pixman_with_alpha(0, 0, gamma_correct);
 
         if (damage != NULL)
