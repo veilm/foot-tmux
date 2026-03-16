@@ -981,6 +981,19 @@ render_cell(struct terminal *term, pixman_image_t *pix,
     const int cols_left = term->cols - col;
     cell_cols = max(1, min(cell_cols, cols_left));
 
+    if (base >= GLYPH_BOX_DRAWING_FIRST && base <= GLYPH_BOX_DRAWING_LAST) {
+        pixman_color_t transparent = color_hex_to_pixman_with_alpha(0, 0, gamma_correct);
+
+        if (damage != NULL)
+            pixman_region32_union_rect(
+                damage, damage, x, y, cell_cols * width, height);
+
+        pixman_image_fill_rectangles(
+            PIXMAN_OP_SRC, pix, &transparent, 1,
+            &(pixman_rectangle16_t){x, y, cell_cols * width, height});
+        return cell_cols;
+    }
+
     /*
      * Determine cells that will bleed into their right neighbor and remember
      * them for cleanup in the next frame.

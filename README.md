@@ -2,6 +2,10 @@
 
 This is a foot fork with some minor UX changes that I like. The original source, as of March 2026, is on [codeberg](https://codeberg.org/dnkl/foot).
 
+Changes:
+- certain box drawing characters like `┤` will be drawn as completely transparent cells. so if in tmux you use `pane-border-lines single`, it'll look like each pane is in a separate window
+	- in hyprland, disabling shadows and borders is recommended
+
 Original README:
 
 # ![Logo: a terminal with a foot shaped prompt](icons/hicolor/48x48/apps/foot.png) foot
