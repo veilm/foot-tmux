@@ -151,24 +151,41 @@ render_separator_geometry_prepare(struct terminal *term)
         }
     }
 
-    const int requested_extra = widenable_count > 0 ? term->cell_width : 0;
-    const int total_extra_budget = term->margins.left + term->margins.right;
-    const int extra = widenable_count > 0
-        ? min(requested_extra, total_extra_budget / widenable_count)
-        : 0;
-    const int total_extra = widenable_count * extra;
-    const int consume_left = max(0, total_extra - term->margins.right);
+    if (widenable_count == 0) {
+        for (int col = 0; col < term->cols; col++)
+            term->render.col_width[col] = term->cell_width;
+    } else {
+        const int non_widenable_count = term->cols - widenable_count;
+        const int requested_extra = term->cell_width;
+        const int max_average_shrink = max(1, term->cell_width / 8);
+        const int max_extra = non_widenable_count > 0
+            ? (non_widenable_count * max_average_shrink) / widenable_count
+            : 0;
+        const int extra = min(requested_extra, max_extra);
 
-    term->render.separator_extra_width = extra;
+        term->render.separator_extra_width = extra;
 
-    for (int col = 0; col < term->cols; col++) {
-        int width = term->cell_width;
-        if (term->render.widenable_cols[col])
-            width += extra;
-        term->render.col_width[col] = width;
+        int shrink_total = widenable_count * extra;
+        const int shrink_base = non_widenable_count > 0 ? shrink_total / non_widenable_count : 0;
+        int shrink_remainder = non_widenable_count > 0 ? shrink_total % non_widenable_count : 0;
+
+        for (int col = 0; col < term->cols; col++) {
+            int width = term->cell_width;
+
+            if (term->render.widenable_cols[col]) {
+                width += extra;
+            } else if (shrink_total > 0) {
+                const int shrink = shrink_base + (shrink_remainder > 0 ? 1 : 0);
+                width = max(1, width - shrink);
+                if (shrink_remainder > 0)
+                    shrink_remainder--;
+            }
+
+            term->render.col_width[col] = width;
+        }
     }
 
-    term->render.col_x[0] = term->margins.left - consume_left;
+    term->render.col_x[0] = term->margins.left;
     for (int col = 0; col < term->cols; col++)
         term->render.col_x[col + 1] = term->render.col_x[col] + term->render.col_width[col];
 
@@ -1494,8 +1511,7 @@ render_margin(struct terminal *term, struct buffer *buf,
 static bool
 cell_is_fully_transparent(const struct terminal *term, const struct row *row, int col)
 {
-    if (term->render.widenable_cols != NULL && term->render.widenable_cols[col])
-        return true;
+    (void)term;
     return is_transparent_separator(row->cells[col].wc);
 }
 
@@ -1545,22 +1561,20 @@ render_transparent_edge_padding(struct terminal *term, pixman_image_t *pix,
         const int y = term->margins.top + row_no * term->cell_height;
 
         if (term->margins.left > 0 && cell_is_fully_transparent(term, row, 0)) {
-            const int width = render_x_for_col(term, 0);
             pixman_image_fill_rectangles(
                 PIXMAN_OP_SRC, pix, &transparent, 1,
-                &(pixman_rectangle16_t){0, y, width, term->cell_height});
+                &(pixman_rectangle16_t){0, y, term->margins.left, term->cell_height});
             pixman_region32_union_rect(
-                damage, damage, 0, y, width, term->cell_height);
+                damage, damage, 0, y, term->margins.left, term->cell_height);
         }
 
         if (term->margins.right > 0 && cell_is_fully_transparent(term, row, term->cols - 1)) {
-            const int x = render_x_for_col(term, term->cols);
-            const int width = term->width - x;
+            const int x = term->width - term->margins.right;
             pixman_image_fill_rectangles(
                 PIXMAN_OP_SRC, pix, &transparent, 1,
-                &(pixman_rectangle16_t){x, y, width, term->cell_height});
+                &(pixman_rectangle16_t){x, y, term->margins.right, term->cell_height});
             pixman_region32_union_rect(
-                damage, damage, x, y, width, term->cell_height);
+                damage, damage, x, y, term->margins.right, term->cell_height);
         }
     }
 }
