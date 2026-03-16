@@ -11,9 +11,7 @@ Install:
 ```
 git clone https://github.com/veilm/foot-tmux
 cd foot-tmux
-meson setup build
-meson compile -C build
-./build/foot # created binary
+./install.sh # creates /usr/local/bin/foot-tmux
 ```
 
 Original README:
