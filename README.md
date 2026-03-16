@@ -6,6 +6,15 @@ Changes:
 - certain box drawing characters like `┤` will be drawn as completely transparent cells. so if in tmux you use `pane-border-lines single`, it'll look like each pane is in a separate window
 	- in hyprland, disabling shadows and borders is recommended
 
+Install:
+```
+git clone https://github.com/veilm/foot-tmux
+cd foot-tmux
+meson setup build
+meson compile -C build
+./build/foot # created binary
+```
+
 Original README:
 
 # ![Logo: a terminal with a foot shaped prompt](icons/hicolor/48x48/apps/foot.png) foot
