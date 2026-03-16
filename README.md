@@ -3,7 +3,8 @@
 This is a foot fork with some minor UX changes that I like. The original source, as of March 2026, is on [codeberg](https://codeberg.org/dnkl/foot).
 
 Changes:
-- double-line box drawing characters like `╩` and `═` will be drawn as completely transparent cells. so if in tmux you use `pane-border-lines double`, it'll look like each pane is in a separate window
+- tmux pane separators can be rendered as transparent gaps. separator glyphs punch through completely, and columns that look like pane borders for almost the full height of the terminal are widened and made transparent across the whole column. this is aimed at `tmux` with `pane-border-lines double`, so panes can read more like separate Hyprland windows
+  - one missing row is tolerated when detecting a full-height border column, which is mainly for the tmux status bar
   - in hyprland, disabling shadows and borders is recommended
 
 Install:

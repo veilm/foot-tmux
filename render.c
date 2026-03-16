@@ -1163,21 +1163,30 @@ render_cell(struct terminal *term, pixman_image_t *pix,
     cell_cols = max(1, min(cell_cols, cols_left));
     const int cell_span_width = render_width_for_cols(term, col, cell_cols);
 
-    if (is_transparent_separator(base))
-    {
-        const int transparent_width =
-            term->render.widenable_cols != NULL && term->render.widenable_cols[col]
-            ? cell_span_width
-            : cell_cols * width;
+    if (term->render.widenable_cols != NULL && term->render.widenable_cols[col]) {
         pixman_color_t transparent = color_hex_to_pixman_with_alpha(0, 0, gamma_correct);
 
         if (damage != NULL)
             pixman_region32_union_rect(
-                damage, damage, x, y, transparent_width, height);
+                damage, damage, x, y, cell_span_width, height);
 
         pixman_image_fill_rectangles(
             PIXMAN_OP_SRC, pix, &transparent, 1,
-            &(pixman_rectangle16_t){x, y, transparent_width, height});
+            &(pixman_rectangle16_t){x, y, cell_span_width, height});
+        return cell_cols;
+    }
+
+    if (is_transparent_separator(base))
+    {
+        pixman_color_t transparent = color_hex_to_pixman_with_alpha(0, 0, gamma_correct);
+
+        if (damage != NULL)
+            pixman_region32_union_rect(
+                damage, damage, x, y, cell_cols * width, height);
+
+        pixman_image_fill_rectangles(
+            PIXMAN_OP_SRC, pix, &transparent, 1,
+            &(pixman_rectangle16_t){x, y, cell_cols * width, height});
         return cell_cols;
     }
 
