@@ -519,6 +519,9 @@ color_brighten(const struct terminal *term, uint32_t color)
 static inline int
 window_border_width(const struct terminal *term)
 {
+    if (!term->conf->window_border_enabled)
+        return 0;
+
     return roundf(term->scale * term->conf->window_border_width);
 }
 
@@ -4832,10 +4835,11 @@ set_size_from_grid(struct terminal *term, int *width, int *height, int cols, int
     new_height = rows * term->cell_height;
 
     /* Include any configured padding and the main-surface border */
-    new_width  += (term->conf->pad_left + term->conf->pad_right +
-                   2 * term->conf->window_border_width) * term->scale;
-    new_height += (term->conf->pad_top + term->conf->pad_bottom +
-                   2 * term->conf->window_border_width) * term->scale;
+    const int border_width = window_border_width(term);
+    new_width  += (term->conf->pad_left + term->conf->pad_right) * term->scale +
+                  2 * border_width;
+    new_height += (term->conf->pad_top + term->conf->pad_bottom) * term->scale +
+                  2 * border_width;
 
     /* Round to multiples of scale */
     new_width = round(term->scale * round(new_width / term->scale));

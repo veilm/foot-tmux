@@ -331,11 +331,15 @@ empty string to be set, but it must be quoted: *KEY=""*
 	
 	Default: _0x0_ center-when-maximized-and-fullscreen.
 
+*window-border-enabled*
+	Boolean. When enabled, foot draws a border around the main terminal
+	window. This border is part of the terminal surface itself, not the
+	CSD/SSD window decoration. Default: _no_.
+
 *window-border-width*
 	Width of the border drawn around the main terminal window, in
-	pixels (subject to output scaling). This border is part of the
-	terminal surface itself, not the CSD/SSD window decoration.
-	Default: _4_.
+	pixels (subject to output scaling). Used when
+	*window-border-enabled* is enabled. Default: _4_.
 
 *resize-delay-ms*
 
