@@ -140,6 +140,7 @@ struct color_theme {
     uint16_t alpha;
     uint32_t selection_fg;
     uint32_t selection_bg;
+    uint32_t window_border;
     uint32_t url;
 
     uint32_t dim[8];
@@ -187,6 +188,7 @@ struct color_theme {
         bool cursor:1;
         bool jump_label:1;
         bool scrollback_indicator:1;
+        bool window_border:1;
         bool url:1;
         bool search_box_no_match:1;
         bool search_box_match:1;
@@ -239,6 +241,7 @@ struct config {
     unsigned pad_top;
     unsigned pad_right;
     unsigned pad_bottom;
+    uint16_t window_border_width;
     enum center_when center_when;
 
     bool resize_by_cells;

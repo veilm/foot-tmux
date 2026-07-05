@@ -331,6 +331,12 @@ empty string to be set, but it must be quoted: *KEY=""*
 	
 	Default: _0x0_ center-when-maximized-and-fullscreen.
 
+*window-border-width*
+	Width of the border drawn around the main terminal window, in
+	pixels (subject to output scaling). This border is part of the
+	terminal surface itself, not the CSD/SSD window decoration.
+	Default: _4_.
+
 *resize-delay-ms*
 
 	Time, in milliseconds, of "idle time" before foot performs text
@@ -1127,6 +1133,10 @@ The default theme used is *colors-dark*, unless
 *selection-foreground*, *selection-background*
 	Foreground (text) and background color to use in selected
 	text. Default: _inverse foreground/background_.
+
+*window-border*
+	Color to use for the border around the main terminal window.
+	Default: _regular1_.
 
 *jump-labels*
 	Two color values specifying the foreground (text) and background

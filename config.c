@@ -994,6 +994,9 @@ parse_section_main(struct context *ctx)
         return true;
     }
 
+    else if (streq(key, "window-border-width"))
+        return value_to_uint16(ctx, 10, &conf->window_border_width);
+
     else if (streq(key, "resize-delay-ms"))
         return value_to_uint16(ctx, 10, &conf->resize_delay_ms);
 
@@ -1466,6 +1469,13 @@ parse_color_theme(struct context *ctx, struct color_theme *theme)
     else if (streq(key, "background")) color = &theme->bg;
     else if (streq(key, "selection-foreground")) color = &theme->selection_fg;
     else if (streq(key, "selection-background")) color = &theme->selection_bg;
+    else if (streq(key, "window-border")) {
+        if (!value_to_color(ctx, &theme->window_border, false))
+            return false;
+
+        theme->use_custom.window_border = true;
+        return true;
+    }
 
     else if (streq(key, "jump-labels")) {
         if (!value_to_two_colors(
@@ -3478,6 +3488,7 @@ config_load(struct config *conf, const char *conf_path,
         .pad_top = 0,
         .pad_right = 0,
         .pad_bottom = 0,
+        .window_border_width = 4,
         .center_when = CENTER_MAXIMIZED_AND_FULLSCREEN,
         .resize_by_cells = true,
         .resize_keep_grid = true,
@@ -3540,6 +3551,7 @@ config_load(struct config *conf, const char *conf_path,
             .dim_blend_towards = DIM_BLEND_TOWARDS_BLACK,
             .selection_fg = 0x80000000,  /* Use default bg */
             .selection_bg = 0x80000000,  /* Use default fg */
+            .window_border = 0,
             .cursor = {
                 .text = 0,
                 .cursor = 0,
@@ -3547,6 +3559,7 @@ config_load(struct config *conf, const char *conf_path,
             .use_custom = {
                 .jump_label = false,
                 .scrollback_indicator = false,
+                .window_border = false,
                 .url = false,
             },
             .blur = false,

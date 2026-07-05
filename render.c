@@ -516,6 +516,20 @@ color_brighten(const struct terminal *term, uint32_t color)
     return color_blend_towards(color, 0x00ffffff, term->conf->bold_in_bright.amount);
 }
 
+static inline int
+window_border_width(const struct terminal *term)
+{
+    return roundf(term->scale * term->conf->window_border_width);
+}
+
+static inline uint32_t
+window_border_color(const struct terminal *term)
+{
+    return (term->colors.window_border & (1u << 31))
+        ? term->colors.window_border & ~(1u << 31)
+        : term->colors.table[1];
+}
+
 static void
 draw_hollow_block(const struct terminal *term, pixman_image_t *pix,
                   const pixman_color_t *color, int x, int y, int cell_cols)
@@ -1430,6 +1444,39 @@ render_urgency(struct terminal *term, struct buffer *buf)
             /* Right */
             {term->width - width, width, width, term->height - 2 * width},
         });
+}
+
+static void
+render_window_border(struct terminal *term, pixman_image_t *pix,
+                     pixman_region32_t *damage)
+{
+    const int configured_width = window_border_width(term);
+    if (configured_width <= 0)
+        return;
+
+    const int border_width = min(configured_width, min(term->width, term->height));
+    const int vertical_height = max(0, term->height - 2 * border_width);
+    const bool gamma_correct = wayl_do_linear_blending(term->wl, term->conf);
+    const pixman_color_t color = color_hex_to_pixman(
+        window_border_color(term), gamma_correct);
+
+    pixman_image_fill_rectangles(
+        PIXMAN_OP_SRC, pix, &color, 4,
+        (pixman_rectangle16_t[]){
+            {0, 0, term->width, border_width},
+            {0, term->height - border_width, term->width, border_width},
+            {0, border_width, border_width, vertical_height},
+            {term->width - border_width, border_width, border_width, vertical_height},
+        });
+
+    pixman_region32_union_rect(damage, damage, 0, 0, term->width, border_width);
+    pixman_region32_union_rect(
+        damage, damage, 0, term->height - border_width, term->width, border_width);
+    pixman_region32_union_rect(
+        damage, damage, 0, border_width, border_width, vertical_height);
+    pixman_region32_union_rect(
+        damage, damage, term->width - border_width, border_width,
+        border_width, vertical_height);
 }
 
 static void
@@ -3849,6 +3896,7 @@ grid_render(struct terminal *term)
     }
 
     render_transparent_edge_padding(term, buf->pix[0], &damage);
+    render_window_border(term, buf->pix[0], &damage);
 
     /* Signal workers the frame is done */
     if (term->render.workers.count > 0) {
@@ -4783,9 +4831,11 @@ set_size_from_grid(struct terminal *term, int *width, int *height, int cols, int
     new_width = cols * term->cell_width;
     new_height = rows * term->cell_height;
 
-    /* Include any configured padding */
-    new_width  += (term->conf->pad_left + term->conf->pad_right) * term->scale;
-    new_height += (term->conf->pad_top + term->conf->pad_bottom) * term->scale;
+    /* Include any configured padding and the main-surface border */
+    new_width  += (term->conf->pad_left + term->conf->pad_right +
+                   2 * term->conf->window_border_width) * term->scale;
+    new_height += (term->conf->pad_top + term->conf->pad_bottom +
+                   2 * term->conf->window_border_width) * term->scale;
 
     /* Round to multiples of scale */
     new_width = round(term->scale * round(new_width / term->scale));
@@ -4884,19 +4934,22 @@ render_resize(struct terminal *term, int width, int height, uint8_t opts)
     const int min_rows = 1;
 
     /* Minimum window size (must be divisible by the scaling factor)*/
-    const int min_width = roundf(scale * ceilf((min_cols * term->cell_width) / scale));
-    const int min_height = roundf(scale * ceilf((min_rows * term->cell_height) / scale));
+    const int border_width = window_border_width(term);
+    const int min_width = roundf(scale * ceilf(
+        (min_cols * term->cell_width + 2 * border_width) / scale));
+    const int min_height = roundf(scale * ceilf(
+        (min_rows * term->cell_height + 2 * border_width) / scale));
 
     width = max(width, min_width);
     height = max(height, min_height);
 
     /* Padding */
-    const int max_pad_x = (width - min_width) / 2;
-    const int max_pad_y = (height - min_height) / 2;
-    const int pad_left  = min(max_pad_x, scale * term->conf->pad_left);
-    const int pad_right = min(max_pad_x, scale * term->conf->pad_right);
-    const int pad_top   = min(max_pad_y, scale * term->conf->pad_top);
-    const int pad_bottom= min(max_pad_y, scale * term->conf->pad_bottom);
+    const int max_pad_x = (width - min_cols * term->cell_width) / 2;
+    const int max_pad_y = (height - min_rows * term->cell_height) / 2;
+    const int pad_left  = min(max_pad_x, border_width + scale * term->conf->pad_left);
+    const int pad_right = min(max_pad_x, border_width + scale * term->conf->pad_right);
+    const int pad_top   = min(max_pad_y, border_width + scale * term->conf->pad_top);
+    const int pad_bottom= min(max_pad_y, border_width + scale * term->conf->pad_bottom);
 
     if (is_floating &&
         (opts & RESIZE_BY_CELLS) &&
