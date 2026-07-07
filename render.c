@@ -534,7 +534,7 @@ window_border_color(const struct terminal *term)
 }
 
 static float
-ease_out_cubic(float t)
+window_border_ease_out_cubic(float t)
 {
     t = min(1., max(0., t));
     const float inv = 1. - t;
@@ -591,7 +591,7 @@ tmux_pane_border_render_rect(struct terminal *term)
     timespec_sub(&now, &anim->started_at, &elapsed);
 
     const double elapsed_ms = elapsed.tv_sec * 1000. + elapsed.tv_nsec / 1000000.;
-    const float t = ease_out_cubic(elapsed_ms / 160.);
+    const float t = window_border_ease_out_cubic(elapsed_ms / 160.);
 
     if (t >= 1.) {
         anim->active = false;

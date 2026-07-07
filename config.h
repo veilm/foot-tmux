@@ -242,6 +242,7 @@ struct config {
     unsigned pad_right;
     unsigned pad_bottom;
     bool window_border_enabled;
+    bool window_border_animation_enabled;
     uint16_t window_border_width;
     enum center_when center_when;
 

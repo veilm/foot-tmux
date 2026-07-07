@@ -85,12 +85,50 @@ tmux_pane_border_rect(const struct terminal *term,
     return rect->width > 0 && rect->height > 0;
 }
 
+static float
+ease_out_cubic(float t)
+{
+    t = min(1., max(0., t));
+    const float inv = 1. - t;
+    return 1. - inv * inv * inv;
+}
+
+static int
+rect_lerp(int from, int to, float t)
+{
+    return roundf(from + (to - from) * t);
+}
+
+static struct tmux_pane_border_rect
+tmux_pane_border_animated_rect(struct terminal *term)
+{
+    struct tmux_pane_border_animation *anim = &term->tmux_pane_border_animation;
+    if (!anim->active)
+        return anim->to;
+
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+
+    struct timespec elapsed;
+    timespec_sub(&now, &anim->started_at, &elapsed);
+
+    const double elapsed_ms = elapsed.tv_sec * 1000. + elapsed.tv_nsec / 1000000.;
+    const float t = ease_out_cubic(elapsed_ms / 160.);
+
+    return (struct tmux_pane_border_rect){
+        .x = rect_lerp(anim->from.x, anim->to.x, t),
+        .y = rect_lerp(anim->from.y, anim->to.y, t),
+        .width = rect_lerp(anim->from.width, anim->to.width, t),
+        .height = rect_lerp(anim->from.height, anim->to.height, t),
+    };
+}
+
 static bool
 tmux_pane_border_current_rect(struct terminal *term,
                               struct tmux_pane_border_rect *rect)
 {
     if (term->tmux_pane_border_animation.active) {
-        *rect = term->tmux_pane_border_animation.to;
+        *rect = tmux_pane_border_animated_rect(term);
         return true;
     }
 
@@ -182,7 +220,8 @@ osc_foot_tmux_pane(struct terminal *term, char *string)
     const bool have_from = tmux_pane_border_current_rect(term, &from);
 
     term->tmux_pane = pane;
-    if (have_from && tmux_pane_border_rect(term, &term->tmux_pane, &to) &&
+    if (term->conf->window_border_animation_enabled &&
+        have_from && tmux_pane_border_rect(term, &term->tmux_pane, &to) &&
         (from.x != to.x || from.y != to.y ||
          from.width != to.width || from.height != to.height))
     {

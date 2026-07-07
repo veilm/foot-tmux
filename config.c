@@ -997,6 +997,9 @@ parse_section_main(struct context *ctx)
     else if (streq(key, "window-border-enabled"))
         return value_to_bool(ctx, &conf->window_border_enabled);
 
+    else if (streq(key, "window-border-animation-enabled"))
+        return value_to_bool(ctx, &conf->window_border_animation_enabled);
+
     else if (streq(key, "window-border-width"))
         return value_to_uint16(ctx, 10, &conf->window_border_width);
 
@@ -3492,6 +3495,7 @@ config_load(struct config *conf, const char *conf_path,
         .pad_right = 0,
         .pad_bottom = 0,
         .window_border_enabled = false,
+        .window_border_animation_enabled = false,
         .window_border_width = 4,
         .center_when = CENTER_MAXIMIZED_AND_FULLSCREEN,
         .resize_by_cells = true,

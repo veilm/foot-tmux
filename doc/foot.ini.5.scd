@@ -336,6 +336,10 @@ empty string to be set, but it must be quoted: *KEY=""*
 	pane reported by foot's private OSC 777 pane-geometry extension.
 	Default: _no_.
 
+*window-border-animation-enabled*
+	Boolean. When enabled, active tmux pane border changes animate
+	between old and new pane rectangles. Default: _no_.
+
 *window-border-width*
 	Width of the border drawn around the active tmux pane, in
 	pixels (subject to output scaling). Used when
