@@ -3925,7 +3925,6 @@ grid_render(struct terminal *term)
     }
 
     render_transparent_edge_padding(term, buf->pix[0], &damage);
-    render_window_border(term, buf->pix[0], &damage);
 
     /* Signal workers the frame is done */
     if (term->render.workers.count > 0) {
@@ -3940,6 +3939,8 @@ grid_render(struct terminal *term)
 
     for (size_t i = 0; i < term->render.workers.count; i++)
         pixman_region32_union(&damage, &damage, &buf->dirty[i + 1]);
+
+    render_window_border(term, buf->pix[0], &damage);
 
     pixman_region32_union(&buf->dirty[0], &buf->dirty[0], &damage);
 
