@@ -1454,11 +1454,34 @@ render_window_border(struct terminal *term, pixman_image_t *pix,
                      pixman_region32_t *damage)
 {
     const int configured_width = window_border_width(term);
-    if (configured_width <= 0)
+    if (configured_width <= 0 || !term->tmux_pane.valid)
         return;
 
-    const int border_width = min(configured_width, min(term->width, term->height));
-    const int vertical_height = max(0, term->height - 2 * border_width);
+    const struct tmux_pane_geometry *pane = &term->tmux_pane;
+    const int status_top_rows =
+        pane->status_position == TMUX_STATUS_TOP ? pane->status_rows : 0;
+    const int cell_x = pane->pane_x - pane->window_offset_x;
+    const int cell_y = pane->pane_y - pane->window_offset_y + status_top_rows;
+
+    if (cell_x >= term->cols || cell_y >= term->rows ||
+        cell_x + pane->pane_width <= 0 || cell_y + pane->pane_height <= 0)
+    {
+        return;
+    }
+
+    const int clipped_cell_x = max(0, cell_x);
+    const int clipped_cell_y = max(0, cell_y);
+    const int clipped_cell_right = min(term->cols, cell_x + pane->pane_width);
+    const int clipped_cell_bottom = min(term->rows, cell_y + pane->pane_height);
+    const int rect_x = term->margins.left + clipped_cell_x * term->cell_width;
+    const int rect_y = term->margins.top + clipped_cell_y * term->cell_height;
+    const int rect_width = (clipped_cell_right - clipped_cell_x) * term->cell_width;
+    const int rect_height = (clipped_cell_bottom - clipped_cell_y) * term->cell_height;
+    const int border_width = min(configured_width, min(rect_width, rect_height));
+    if (border_width <= 0)
+        return;
+
+    const int vertical_height = max(0, rect_height - 2 * border_width);
     const bool gamma_correct = wayl_do_linear_blending(term->wl, term->conf);
     const pixman_color_t color = color_hex_to_pixman(
         window_border_color(term), gamma_correct);
@@ -1466,19 +1489,22 @@ render_window_border(struct terminal *term, pixman_image_t *pix,
     pixman_image_fill_rectangles(
         PIXMAN_OP_SRC, pix, &color, 4,
         (pixman_rectangle16_t[]){
-            {0, 0, term->width, border_width},
-            {0, term->height - border_width, term->width, border_width},
-            {0, border_width, border_width, vertical_height},
-            {term->width - border_width, border_width, border_width, vertical_height},
+            {rect_x, rect_y, rect_width, border_width},
+            {rect_x, rect_y + rect_height - border_width, rect_width, border_width},
+            {rect_x, rect_y + border_width, border_width, vertical_height},
+            {rect_x + rect_width - border_width, rect_y + border_width,
+             border_width, vertical_height},
         });
 
-    pixman_region32_union_rect(damage, damage, 0, 0, term->width, border_width);
     pixman_region32_union_rect(
-        damage, damage, 0, term->height - border_width, term->width, border_width);
+        damage, damage, rect_x, rect_y, rect_width, border_width);
     pixman_region32_union_rect(
-        damage, damage, 0, border_width, border_width, vertical_height);
+        damage, damage, rect_x, rect_y + rect_height - border_width,
+        rect_width, border_width);
     pixman_region32_union_rect(
-        damage, damage, term->width - border_width, border_width,
+        damage, damage, rect_x, rect_y + border_width, border_width, vertical_height);
+    pixman_region32_union_rect(
+        damage, damage, rect_x + rect_width - border_width, rect_y + border_width,
         border_width, vertical_height);
 }
 
@@ -4834,12 +4860,9 @@ set_size_from_grid(struct terminal *term, int *width, int *height, int cols, int
     new_width = cols * term->cell_width;
     new_height = rows * term->cell_height;
 
-    /* Include any configured padding and the main-surface border */
-    const int border_width = window_border_width(term);
-    new_width  += (term->conf->pad_left + term->conf->pad_right) * term->scale +
-                  2 * border_width;
-    new_height += (term->conf->pad_top + term->conf->pad_bottom) * term->scale +
-                  2 * border_width;
+    /* Include any configured padding */
+    new_width  += (term->conf->pad_left + term->conf->pad_right) * term->scale;
+    new_height += (term->conf->pad_top + term->conf->pad_bottom) * term->scale;
 
     /* Round to multiples of scale */
     new_width = round(term->scale * round(new_width / term->scale));
@@ -4938,11 +4961,8 @@ render_resize(struct terminal *term, int width, int height, uint8_t opts)
     const int min_rows = 1;
 
     /* Minimum window size (must be divisible by the scaling factor)*/
-    const int border_width = window_border_width(term);
-    const int min_width = roundf(scale * ceilf(
-        (min_cols * term->cell_width + 2 * border_width) / scale));
-    const int min_height = roundf(scale * ceilf(
-        (min_rows * term->cell_height + 2 * border_width) / scale));
+    const int min_width = roundf(scale * ceilf((min_cols * term->cell_width) / scale));
+    const int min_height = roundf(scale * ceilf((min_rows * term->cell_height) / scale));
 
     width = max(width, min_width);
     height = max(height, min_height);
@@ -4950,10 +4970,10 @@ render_resize(struct terminal *term, int width, int height, uint8_t opts)
     /* Padding */
     const int max_pad_x = (width - min_cols * term->cell_width) / 2;
     const int max_pad_y = (height - min_rows * term->cell_height) / 2;
-    const int pad_left  = min(max_pad_x, border_width + scale * term->conf->pad_left);
-    const int pad_right = min(max_pad_x, border_width + scale * term->conf->pad_right);
-    const int pad_top   = min(max_pad_y, border_width + scale * term->conf->pad_top);
-    const int pad_bottom= min(max_pad_y, border_width + scale * term->conf->pad_bottom);
+    const int pad_left  = min(max_pad_x, scale * term->conf->pad_left);
+    const int pad_right = min(max_pad_x, scale * term->conf->pad_right);
+    const int pad_top   = min(max_pad_y, scale * term->conf->pad_top);
+    const int pad_bottom= min(max_pad_y, scale * term->conf->pad_bottom);
 
     if (is_floating &&
         (opts & RESIZE_BY_CELLS) &&

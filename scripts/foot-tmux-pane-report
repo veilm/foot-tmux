@@ -1,0 +1,45 @@
+#!/bin/sh
+set -eu
+
+osc_command='foot-tmux-pane'
+
+status_rows() {
+    case "$1" in
+        off|'') printf '0' ;;
+        on) printf '1' ;;
+        2|3|4|5) printf '%s' "$1" ;;
+        *) printf '1' ;;
+    esac
+}
+
+emit_clear() {
+    tmux list-clients -F '#{client_tty}' | while IFS= read -r tty; do
+        [ -n "$tty" ] || continue
+        [ -w "$tty" ] || continue
+        printf '\033]777;%s;clear\033\\' "$osc_command" > "$tty"
+    done
+}
+
+emit_geometry() {
+    tmux list-clients -F '#{client_tty}' | while IFS= read -r tty; do
+        [ -n "$tty" ] || continue
+        [ -w "$tty" ] || continue
+
+        data=$(
+            tmux display-message -p -c "$tty" \
+                'x=#{pane_left};y=#{pane_top};w=#{pane_width};h=#{pane_height};ww=#{window_width};wh=#{window_height};ox=#{window_offset_x};oy=#{window_offset_y};status=#{status};status_pos=#{status-position}'
+        ) || continue
+
+        status=${data#*status=}
+        status=${status%%;*}
+        rows=$(status_rows "$status")
+
+        printf '\033]777;%s;%s;status_rows=%s\033\\' \
+            "$osc_command" "$data" "$rows" > "$tty"
+    done
+}
+
+case "${1:-}" in
+    clear) emit_clear ;;
+    *) emit_geometry ;;
+esac

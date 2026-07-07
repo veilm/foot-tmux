@@ -787,6 +787,13 @@ All _OSC_ sequences begin with *\\E]*, sometimes abbreviated _OSC_.
 :  urxvt
 :  Desktop notification, uses *desktop-notifications.command* in
    *foot.ini*(5).
+|  \\E] 777;foot-tmux-pane;_fields_ \\E\\
+:  foot
+:  Report active tmux pane geometry for *window-border-enabled*. _fields_
+   is a semicolon separated list of key=value pairs. Recognized keys are
+   *x*, *y*, *w*, *h*, *ww*, *wh*, *ox*, *oy*, *status_rows* and
+   *status_pos*. The pane rectangle uses tmux cell coordinates. Use
+   *\\E]777;foot-tmux-pane;clear\\E\\* to clear cached geometry.
 
 # DCS
 

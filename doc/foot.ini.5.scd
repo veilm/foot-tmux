@@ -332,12 +332,12 @@ empty string to be set, but it must be quoted: *KEY=""*
 	Default: _0x0_ center-when-maximized-and-fullscreen.
 
 *window-border-enabled*
-	Boolean. When enabled, foot draws a border around the main terminal
-	window. This border is part of the terminal surface itself, not the
-	CSD/SSD window decoration. Default: _no_.
+	Boolean. When enabled, foot draws a border around the active tmux
+	pane reported by foot's private OSC 777 pane-geometry extension.
+	Default: _no_.
 
 *window-border-width*
-	Width of the border drawn around the main terminal window, in
+	Width of the border drawn around the active tmux pane, in
 	pixels (subject to output scaling). Used when
 	*window-border-enabled* is enabled. Default: _4_.
 
@@ -1139,8 +1139,8 @@ The default theme used is *colors-dark*, unless
 	text. Default: _inverse foreground/background_.
 
 *window-border*
-	Color to use for the border around the main terminal window.
-	Default: _regular1_.
+	Color to use for the border around the active tmux pane. Default:
+	_regular1_.
 
 *jump-labels*
 	Two color values specifying the foreground (text) and background

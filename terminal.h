@@ -408,6 +408,26 @@ struct colors {
     enum which_color_theme active_theme;
 };
 
+enum tmux_status_position {
+    TMUX_STATUS_OFF,
+    TMUX_STATUS_TOP,
+    TMUX_STATUS_BOTTOM,
+};
+
+struct tmux_pane_geometry {
+    bool valid;
+    int pane_x;
+    int pane_y;
+    int pane_width;
+    int pane_height;
+    int window_width;
+    int window_height;
+    int window_offset_x;
+    int window_offset_y;
+    int status_rows;
+    enum tmux_status_position status_position;
+};
+
 struct terminal {
     struct fdm *fdm;
     struct reaper *reaper;
@@ -645,6 +665,7 @@ struct terminal {
     bool visual_focus;
     bool kbd_focus;
     enum term_surface active_surface;
+    struct tmux_pane_geometry tmux_pane;
 
     struct {
         struct {

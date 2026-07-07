@@ -14,6 +14,7 @@
 #include "config.h"
 #include "macros.h"
 #include "notify.h"
+#include "render.h"
 #include "selection.h"
 #include "terminal.h"
 #include "uri.h"
@@ -22,6 +23,121 @@
 #include "xsnprintf.h"
 
 #define UNHANDLED() LOG_DBG("unhandled: OSC: %.*s", (int)term->vt.osc.idx, term->vt.osc.data)
+
+static bool
+parse_int_value(const char *value, int *out)
+{
+    if (value == NULL || *value == '\0')
+        return false;
+
+    errno = 0;
+    char *end = NULL;
+    long parsed = strtol(value, &end, 10);
+    if (errno != 0 || end == value || *end != '\0' ||
+        parsed < INT_MIN || parsed > INT_MAX)
+    {
+        return false;
+    }
+
+    *out = parsed;
+    return true;
+}
+
+static bool
+parse_optional_int_value(const char *value, int *out)
+{
+    if (value == NULL || *value == '\0')
+        return true;
+
+    return parse_int_value(value, out);
+}
+
+static void
+osc_foot_tmux_pane(struct terminal *term, char *string)
+{
+    if (streq(string, "clear")) {
+        term->tmux_pane.valid = false;
+        term_damage_view(term);
+        render_refresh(term);
+        return;
+    }
+
+    struct tmux_pane_geometry pane = {
+        .window_offset_x = 0,
+        .window_offset_y = 0,
+        .status_rows = 0,
+        .status_position = TMUX_STATUS_BOTTOM,
+    };
+
+    for (char *token = string; token != NULL && *token != '\0';) {
+        char *next = strchr(token, ';');
+        if (next != NULL)
+            *next++ = '\0';
+
+        char *eq = strchr(token, '=');
+        if (eq == NULL)
+            goto invalid;
+
+        *eq++ = '\0';
+
+        if (streq(token, "x")) {
+            if (!parse_int_value(eq, &pane.pane_x))
+                goto invalid;
+        } else if (streq(token, "y")) {
+            if (!parse_int_value(eq, &pane.pane_y))
+                goto invalid;
+        } else if (streq(token, "w")) {
+            if (!parse_int_value(eq, &pane.pane_width))
+                goto invalid;
+        } else if (streq(token, "h")) {
+            if (!parse_int_value(eq, &pane.pane_height))
+                goto invalid;
+        } else if (streq(token, "ww")) {
+            if (!parse_int_value(eq, &pane.window_width))
+                goto invalid;
+        } else if (streq(token, "wh")) {
+            if (!parse_int_value(eq, &pane.window_height))
+                goto invalid;
+        } else if (streq(token, "ox")) {
+            if (!parse_optional_int_value(eq, &pane.window_offset_x))
+                goto invalid;
+        } else if (streq(token, "oy")) {
+            if (!parse_optional_int_value(eq, &pane.window_offset_y))
+                goto invalid;
+        } else if (streq(token, "status_rows")) {
+            if (!parse_int_value(eq, &pane.status_rows))
+                goto invalid;
+        } else if (streq(token, "status_pos")) {
+            if (streq(eq, "top"))
+                pane.status_position = TMUX_STATUS_TOP;
+            else if (streq(eq, "bottom"))
+                pane.status_position = TMUX_STATUS_BOTTOM;
+            else if (streq(eq, "off"))
+                pane.status_position = TMUX_STATUS_OFF;
+            else
+                goto invalid;
+        }
+
+        token = next;
+    }
+
+    if (pane.pane_x < 0 || pane.pane_y < 0 ||
+        pane.pane_width <= 0 || pane.pane_height <= 0 ||
+        pane.window_offset_x < 0 || pane.window_offset_y < 0 ||
+        pane.status_rows < 0)
+    {
+        goto invalid;
+    }
+
+    pane.valid = true;
+    term->tmux_pane = pane;
+    term_damage_view(term);
+    render_refresh(term);
+    return;
+
+invalid:
+    LOG_WARN("OSC 777 foot-tmux-pane: invalid pane geometry");
+}
 
 static void
 osc_to_clipboard(struct terminal *term, const char *target,
@@ -1691,6 +1807,8 @@ osc_dispatch(struct terminal *term)
 
         if (strncmp(string, "notify", param_brk - string) == 0)
             osc_notify(term, param_brk + 1);
+        else if (strncmp(string, "foot-tmux-pane", param_brk - string) == 0)
+            osc_foot_tmux_pane(term, param_brk + 1);
         else
             UNHANDLED();
         break;
