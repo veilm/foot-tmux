@@ -15,20 +15,24 @@ status_rows() {
 emit_clear() {
     tmux list-clients -F '#{client_tty}' | while IFS= read -r tty; do
         [ -n "$tty" ] || continue
+        if [ "${1:-}" ] && [ "$tty" != "$1" ]; then
+            continue
+        fi
         [ -w "$tty" ] || continue
         printf '\033]777;%s;clear\033\\' "$osc_command" > "$tty"
     done
 }
 
 emit_geometry() {
-    tmux list-clients -F '#{client_tty}' | while IFS= read -r tty; do
+    tmux list-clients -F 'tty=#{client_tty};x=#{pane_left};y=#{pane_top};w=#{pane_width};h=#{pane_height};ww=#{window_width};wh=#{window_height};ox=#{window_offset_x};oy=#{window_offset_y};status=#{status};status_pos=#{status-position}' |
+    while IFS= read -r data; do
+        tty=${data%%;*}
+        tty=${tty#tty=}
         [ -n "$tty" ] || continue
+        if [ "${1:-}" ] && [ "$tty" != "$1" ]; then
+            continue
+        fi
         [ -w "$tty" ] || continue
-
-        data=$(
-            tmux display-message -p -c "$tty" \
-                'x=#{pane_left};y=#{pane_top};w=#{pane_width};h=#{pane_height};ww=#{window_width};wh=#{window_height};ox=#{window_offset_x};oy=#{window_offset_y};status=#{status};status_pos=#{status-position}'
-        ) || continue
 
         status=${data#*status=}
         status=${status%%;*}
@@ -40,6 +44,6 @@ emit_geometry() {
 }
 
 case "${1:-}" in
-    clear) emit_clear ;;
-    *) emit_geometry ;;
+    clear) emit_clear "${2:-}" ;;
+    *) emit_geometry "${1:-}" ;;
 esac
