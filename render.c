@@ -569,9 +569,10 @@ tmux_pane_border_target_rect(const struct terminal *term,
     const int clipped_cell_bottom = min(term->rows, cell_y + pane->pane_height);
 
     *rect = (struct tmux_pane_border_rect){
-        .x = term->margins.left + clipped_cell_x * term->cell_width,
+        .x = render_x_for_col(term, clipped_cell_x),
         .y = term->margins.top + clipped_cell_y * term->cell_height,
-        .width = (clipped_cell_right - clipped_cell_x) * term->cell_width,
+        .width = render_width_for_cols(
+            term, clipped_cell_x, clipped_cell_right - clipped_cell_x),
         .height = (clipped_cell_bottom - clipped_cell_y) * term->cell_height,
     };
     return rect->width > 0 && rect->height > 0;

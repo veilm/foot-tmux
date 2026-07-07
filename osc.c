@@ -52,6 +52,14 @@ parse_optional_int_value(const char *value, int *out)
     return parse_int_value(value, out);
 }
 
+static int
+render_x_for_col_snapshot(const struct terminal *term, int col)
+{
+    if (term->render.col_x == NULL || col < 0 || col > term->cols)
+        return term->margins.left + col * term->cell_width;
+    return term->render.col_x[col];
+}
+
 static bool
 tmux_pane_border_rect(const struct terminal *term,
                       const struct tmux_pane_geometry *pane,
@@ -77,9 +85,10 @@ tmux_pane_border_rect(const struct terminal *term,
     const int clipped_cell_bottom = min(term->rows, cell_y + pane->pane_height);
 
     *rect = (struct tmux_pane_border_rect){
-        .x = term->margins.left + clipped_cell_x * term->cell_width,
+        .x = render_x_for_col_snapshot(term, clipped_cell_x),
         .y = term->margins.top + clipped_cell_y * term->cell_height,
-        .width = (clipped_cell_right - clipped_cell_x) * term->cell_width,
+        .width = render_x_for_col_snapshot(term, clipped_cell_right) -
+                 render_x_for_col_snapshot(term, clipped_cell_x),
         .height = (clipped_cell_bottom - clipped_cell_y) * term->cell_height,
     };
     return rect->width > 0 && rect->height > 0;
