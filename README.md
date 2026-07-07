@@ -7,7 +7,10 @@ Changes:
   - one missing row is tolerated when detecting a full-height border column, which is mainly for the tmux status bar
   - if a fully transparent separator touches the edge of the terminal grid, the outer window padding is punched through on that edge too, so the gap stays clean all the way to the border
   - in hyprland, disabling shadows and borders is recommended
-- an opt-in active-pane border can be driven by tmux hooks. enable `window-border-enabled=yes` in foot and add hooks like:
+- an opt-in active-pane border can be driven by tmux hooks. enable
+  `window-border-enabled=yes` in foot. animation is separate and can be enabled
+  with `window-border-animation-enabled=yes`. a test config is available at
+  `examples/tmux-active-pane-border.conf`, or add hooks like:
   ```
   set-hook -g client-attached       'run-shell -b "sh /home/light/src/foot-tmux/scripts/foot-tmux-pane-report"'
   set-hook -g client-resized        'run-shell -b "sh /home/light/src/foot-tmux/scripts/foot-tmux-pane-report"'
