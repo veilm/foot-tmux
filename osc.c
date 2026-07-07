@@ -80,9 +80,19 @@ tmux_pane_border_rect(const struct terminal *term,
     }
 
     const int clipped_cell_x = max(0, cell_x);
-    const int clipped_cell_y = max(0, cell_y);
+    int clipped_cell_y = max(0, cell_y);
     const int clipped_cell_right = min(term->cols, cell_x + pane->pane_width);
-    const int clipped_cell_bottom = min(term->rows, cell_y + pane->pane_height);
+    int clipped_cell_bottom = min(term->rows, cell_y + pane->pane_height);
+
+    if (pane->status_rows > 0) {
+        if (pane->status_position == TMUX_STATUS_BOTTOM &&
+            pane->pane_y + pane->pane_height >= pane->window_height)
+        {
+            clipped_cell_bottom = min(term->rows, clipped_cell_bottom + pane->status_rows);
+        } else if (pane->status_position == TMUX_STATUS_TOP && pane->pane_y == 0) {
+            clipped_cell_y = max(0, clipped_cell_y - pane->status_rows);
+        }
+    }
 
     *rect = (struct tmux_pane_border_rect){
         .x = render_x_for_col_snapshot(term, clipped_cell_x),
