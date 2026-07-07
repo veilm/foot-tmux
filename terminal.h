@@ -428,6 +428,20 @@ struct tmux_pane_geometry {
     enum tmux_status_position status_position;
 };
 
+struct tmux_pane_border_rect {
+    int x;
+    int y;
+    int width;
+    int height;
+};
+
+struct tmux_pane_border_animation {
+    bool active;
+    struct timespec started_at;
+    struct tmux_pane_border_rect from;
+    struct tmux_pane_border_rect to;
+};
+
 struct terminal {
     struct fdm *fdm;
     struct reaper *reaper;
@@ -666,6 +680,7 @@ struct terminal {
     bool kbd_focus;
     enum term_surface active_surface;
     struct tmux_pane_geometry tmux_pane;
+    struct tmux_pane_border_animation tmux_pane_border_animation;
 
     struct {
         struct {

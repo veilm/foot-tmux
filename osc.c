@@ -52,11 +52,57 @@ parse_optional_int_value(const char *value, int *out)
     return parse_int_value(value, out);
 }
 
+static bool
+tmux_pane_border_rect(const struct terminal *term,
+                      const struct tmux_pane_geometry *pane,
+                      struct tmux_pane_border_rect *rect)
+{
+    if (!pane->valid || term->cols <= 0 || term->rows <= 0)
+        return false;
+
+    const int status_top_rows =
+        pane->status_position == TMUX_STATUS_TOP ? pane->status_rows : 0;
+    const int cell_x = pane->pane_x - pane->window_offset_x;
+    const int cell_y = pane->pane_y - pane->window_offset_y + status_top_rows;
+
+    if (cell_x >= term->cols || cell_y >= term->rows ||
+        cell_x + pane->pane_width <= 0 || cell_y + pane->pane_height <= 0)
+    {
+        return false;
+    }
+
+    const int clipped_cell_x = max(0, cell_x);
+    const int clipped_cell_y = max(0, cell_y);
+    const int clipped_cell_right = min(term->cols, cell_x + pane->pane_width);
+    const int clipped_cell_bottom = min(term->rows, cell_y + pane->pane_height);
+
+    *rect = (struct tmux_pane_border_rect){
+        .x = term->margins.left + clipped_cell_x * term->cell_width,
+        .y = term->margins.top + clipped_cell_y * term->cell_height,
+        .width = (clipped_cell_right - clipped_cell_x) * term->cell_width,
+        .height = (clipped_cell_bottom - clipped_cell_y) * term->cell_height,
+    };
+    return rect->width > 0 && rect->height > 0;
+}
+
+static bool
+tmux_pane_border_current_rect(struct terminal *term,
+                              struct tmux_pane_border_rect *rect)
+{
+    if (term->tmux_pane_border_animation.active) {
+        *rect = term->tmux_pane_border_animation.to;
+        return true;
+    }
+
+    return tmux_pane_border_rect(term, &term->tmux_pane, rect);
+}
+
 static void
 osc_foot_tmux_pane(struct terminal *term, char *string)
 {
     if (streq(string, "clear")) {
         term->tmux_pane.valid = false;
+        term->tmux_pane_border_animation.active = false;
         term_damage_view(term);
         render_refresh(term);
         return;
@@ -130,7 +176,24 @@ osc_foot_tmux_pane(struct terminal *term, char *string)
     }
 
     pane.valid = true;
+
+    struct tmux_pane_border_rect from;
+    struct tmux_pane_border_rect to;
+    const bool have_from = tmux_pane_border_current_rect(term, &from);
+
     term->tmux_pane = pane;
+    if (have_from && tmux_pane_border_rect(term, &term->tmux_pane, &to) &&
+        (from.x != to.x || from.y != to.y ||
+         from.width != to.width || from.height != to.height))
+    {
+        clock_gettime(CLOCK_MONOTONIC, &term->tmux_pane_border_animation.started_at);
+        term->tmux_pane_border_animation.from = from;
+        term->tmux_pane_border_animation.to = to;
+        term->tmux_pane_border_animation.active = true;
+    } else {
+        term->tmux_pane_border_animation.active = false;
+    }
+
     term_damage_view(term);
     render_refresh(term);
     return;

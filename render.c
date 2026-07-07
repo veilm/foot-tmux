@@ -533,6 +533,82 @@ window_border_color(const struct terminal *term)
         : term->colors.table[1];
 }
 
+static float
+ease_out_cubic(float t)
+{
+    t = min(1., max(0., t));
+    const float inv = 1. - t;
+    return 1. - inv * inv * inv;
+}
+
+static int
+rect_lerp(int from, int to, float t)
+{
+    return roundf(from + (to - from) * t);
+}
+
+static bool
+tmux_pane_border_target_rect(const struct terminal *term,
+                             struct tmux_pane_border_rect *rect)
+{
+    const struct tmux_pane_geometry *pane = &term->tmux_pane;
+    const int status_top_rows =
+        pane->status_position == TMUX_STATUS_TOP ? pane->status_rows : 0;
+    const int cell_x = pane->pane_x - pane->window_offset_x;
+    const int cell_y = pane->pane_y - pane->window_offset_y + status_top_rows;
+
+    if (cell_x >= term->cols || cell_y >= term->rows ||
+        cell_x + pane->pane_width <= 0 || cell_y + pane->pane_height <= 0)
+    {
+        return false;
+    }
+
+    const int clipped_cell_x = max(0, cell_x);
+    const int clipped_cell_y = max(0, cell_y);
+    const int clipped_cell_right = min(term->cols, cell_x + pane->pane_width);
+    const int clipped_cell_bottom = min(term->rows, cell_y + pane->pane_height);
+
+    *rect = (struct tmux_pane_border_rect){
+        .x = term->margins.left + clipped_cell_x * term->cell_width,
+        .y = term->margins.top + clipped_cell_y * term->cell_height,
+        .width = (clipped_cell_right - clipped_cell_x) * term->cell_width,
+        .height = (clipped_cell_bottom - clipped_cell_y) * term->cell_height,
+    };
+    return rect->width > 0 && rect->height > 0;
+}
+
+static struct tmux_pane_border_rect
+tmux_pane_border_render_rect(struct terminal *term)
+{
+    struct tmux_pane_border_animation *anim = &term->tmux_pane_border_animation;
+    if (!anim->active)
+        return anim->to;
+
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+
+    struct timespec elapsed;
+    timespec_sub(&now, &anim->started_at, &elapsed);
+
+    const double elapsed_ms = elapsed.tv_sec * 1000. + elapsed.tv_nsec / 1000000.;
+    const float t = ease_out_cubic(elapsed_ms / 160.);
+
+    if (t >= 1.) {
+        anim->active = false;
+        return anim->to;
+    }
+
+    term_damage_view(term);
+    render_refresh(term);
+
+    return (struct tmux_pane_border_rect){
+        .x = rect_lerp(anim->from.x, anim->to.x, t),
+        .y = rect_lerp(anim->from.y, anim->to.y, t),
+        .width = rect_lerp(anim->from.width, anim->to.width, t),
+        .height = rect_lerp(anim->from.height, anim->to.height, t),
+    };
+}
+
 static void
 draw_hollow_block(const struct terminal *term, pixman_image_t *pix,
                   const pixman_color_t *color, int x, int y, int cell_cols)
@@ -1457,26 +1533,15 @@ render_window_border(struct terminal *term, pixman_image_t *pix,
     if (configured_width <= 0 || !term->tmux_pane.valid)
         return;
 
-    const struct tmux_pane_geometry *pane = &term->tmux_pane;
-    const int status_top_rows =
-        pane->status_position == TMUX_STATUS_TOP ? pane->status_rows : 0;
-    const int cell_x = pane->pane_x - pane->window_offset_x;
-    const int cell_y = pane->pane_y - pane->window_offset_y + status_top_rows;
-
-    if (cell_x >= term->cols || cell_y >= term->rows ||
-        cell_x + pane->pane_width <= 0 || cell_y + pane->pane_height <= 0)
-    {
+    if (!tmux_pane_border_target_rect(
+            term, &term->tmux_pane_border_animation.to))
         return;
-    }
 
-    const int clipped_cell_x = max(0, cell_x);
-    const int clipped_cell_y = max(0, cell_y);
-    const int clipped_cell_right = min(term->cols, cell_x + pane->pane_width);
-    const int clipped_cell_bottom = min(term->rows, cell_y + pane->pane_height);
-    const int rect_x = term->margins.left + clipped_cell_x * term->cell_width;
-    const int rect_y = term->margins.top + clipped_cell_y * term->cell_height;
-    const int rect_width = (clipped_cell_right - clipped_cell_x) * term->cell_width;
-    const int rect_height = (clipped_cell_bottom - clipped_cell_y) * term->cell_height;
+    const struct tmux_pane_border_rect rect = tmux_pane_border_render_rect(term);
+    const int rect_x = rect.x;
+    const int rect_y = rect.y;
+    const int rect_width = rect.width;
+    const int rect_height = rect.height;
     const int border_width = min(configured_width, min(rect_width, rect_height));
     if (border_width <= 0)
         return;
