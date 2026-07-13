@@ -11,6 +11,7 @@ project('foot', 'c',
 is_debug_build = get_option('buildtype').startswith('debug')
 
 cc = meson.get_compiler('c')
+source_inc = include_directories('src')
 
 # Newer clang versions warns when using __COUNTER__ without -std=c2y
 if cc.has_argument('-Wc2y-extensions')
@@ -247,57 +248,61 @@ srgb_funcs = custom_target(
 
 common = static_library(
   'common',
-  'log.c', 'log.h',
-  'char32.c', 'char32.h',
-  'debug.c', 'debug.h',
-  'macros.h',
-  'xmalloc.c', 'xmalloc.h',
-  'xsnprintf.c', 'xsnprintf.h',
-  dependencies: [utf8proc]
+  'src/log.c', 'src/log.h',
+  'src/char32.c', 'src/char32.h',
+  'src/debug.c', 'src/debug.h',
+  'src/macros.h',
+  'src/xmalloc.c', 'src/xmalloc.h',
+  'src/xsnprintf.c', 'src/xsnprintf.h',
+  dependencies: [utf8proc],
+  include_directories: source_inc
 )
 
 misc = static_library(
   'misc',
-  'hsl.c', 'hsl.h',
-  'macros.h',
-  'misc.c', 'misc.h',
-  'uri.c', 'uri.h',
+  'src/hsl.c', 'src/hsl.h',
+  'src/macros.h',
+  'src/misc.c', 'src/misc.h',
+  'src/uri.c', 'src/uri.h',
   dependencies: [utf8proc],
-  link_with: [common]
+  link_with: [common],
+  include_directories: source_inc
 )
 
 vtlib = static_library(
   'vtlib',
-  'base64.c', 'base64.h',
-  'composed.c', 'composed.h',
-  'cursor-shape.c', 'cursor-shape.h',
-  'csi.c', 'csi.h',
-  'dcs.c', 'dcs.h',
-  'macros.h',
-  'osc.c', 'osc.h',
-  'sixel.c', 'sixel.h',
-  'vt.c', 'vt.h',
+  'src/base64.c', 'src/base64.h',
+  'src/composed.c', 'src/composed.h',
+  'src/cursor-shape.c', 'src/cursor-shape.h',
+  'src/csi.c', 'src/csi.h',
+  'src/dcs.c', 'src/dcs.h',
+  'src/macros.h',
+  'src/osc.c', 'src/osc.h',
+  'src/sixel.c', 'src/sixel.h',
+  'src/vt.c', 'src/vt.h',
   builtin_terminfo, srgb_funcs,
   wl_proto_src + wl_proto_headers,
   version,
   dependencies: [libepoll, pixman, fcft, tllist, wayland_client, xkb, utf8proc],
   link_with: [common, misc],
+  include_directories: source_inc,
 )
 
 pgolib = static_library(
   'pgolib',
-  'grid.c', 'grid.h',
-  'selection.c', 'selection.h',
-  'terminal.c', 'terminal.h',
+  'src/grid.c', 'src/grid.h',
+  'src/selection.c', 'src/selection.h',
+  'src/terminal.c', 'src/terminal.h',
   emoji_variation_sequences,
   wl_proto_src + wl_proto_headers,
   dependencies: [libepoll, pixman, fcft, tllist, wayland_client, xkb, utf8proc],
   link_with: vtlib,
+  include_directories: source_inc,
 )
 
 tokenize = static_library(
   'tokenizelib',
-  'tokenize.c',
+  'src/tokenize.c',
   dependencies: [utf8proc],
   link_with: [common],
 )
@@ -309,52 +314,55 @@ if get_option('b_pgo') == 'generate'
     wl_proto_src + wl_proto_headers,
     dependencies: [math, threads, libepoll, pixman, wayland_client, xkb, utf8proc, fcft, tllist],
     link_with: pgolib,
+    include_directories: source_inc,
   )
 endif
 
 executable(
   'foot',
-  'async.c', 'async.h',
-  'box-drawing.c', 'box-drawing.h',
-  'config.c', 'config.h',
-  'commands.c', 'commands.h',
-  'extract.c', 'extract.h',
-  'fdm.c', 'fdm.h',
-  'foot-features.c', 'foot-features.h',
-  'ime.c', 'ime.h',
-  'input.c', 'input.h',
-  'key-binding.c', 'key-binding.h',
-  'main.c',
-  'notify.c', 'notify.h',
-  'quirks.c', 'quirks.h',
-  'reaper.c', 'reaper.h',
-  'render.c', 'render.h',
-  'search.c', 'search.h',
-  'server.c', 'server.h', 'client-protocol.h',
-  'shm.c', 'shm.h',
-  'slave.c', 'slave.h',
-  'spawn.c', 'spawn.h',
-  'tokenize.c', 'tokenize.h',
-  'unicode-mode.c', 'unicode-mode.h',
-  'url-mode.c', 'url-mode.h',
-  'user-notification.c', 'user-notification.h',
-  'wayland.c', 'wayland.h', 'shm-formats.h',
-  'xkbcommon-vmod.h',
+  'src/async.c', 'src/async.h',
+  'src/box-drawing.c', 'src/box-drawing.h',
+  'src/config.c', 'src/config.h',
+  'src/commands.c', 'src/commands.h',
+  'src/extract.c', 'src/extract.h',
+  'src/fdm.c', 'src/fdm.h',
+  'src/foot-features.c', 'src/foot-features.h',
+  'src/ime.c', 'src/ime.h',
+  'src/input.c', 'src/input.h',
+  'src/key-binding.c', 'src/key-binding.h',
+  'src/main.c',
+  'src/notify.c', 'src/notify.h',
+  'src/quirks.c', 'src/quirks.h',
+  'src/reaper.c', 'src/reaper.h',
+  'src/render.c', 'src/render.h',
+  'src/search.c', 'src/search.h',
+  'src/server.c', 'src/server.h', 'src/client-protocol.h',
+  'src/shm.c', 'src/shm.h',
+  'src/slave.c', 'src/slave.h',
+  'src/spawn.c', 'src/spawn.h',
+  'src/tokenize.c', 'src/tokenize.h',
+  'src/unicode-mode.c', 'src/unicode-mode.h',
+  'src/url-mode.c', 'src/url-mode.h',
+  'src/user-notification.c', 'src/user-notification.h',
+  'src/wayland.c', 'src/wayland.h', 'src/shm-formats.h',
+  'src/xkbcommon-vmod.h',
   srgb_funcs, wl_proto_src + wl_proto_headers, version,
   dependencies: [math, threads, libepoll, pixman, wayland_client, wayland_cursor, xkb, fontconfig, utf8proc,
                  tllist, fcft],
   link_with: pgolib,
+  include_directories: source_inc,
   install: true)
 
 executable(
   'footclient',
-  'client.c', 'client-protocol.h',
-  'foot-features.c', 'foot-features.h',
-  'macros.h',
-  'util.h',
+  'src/client.c', 'src/client-protocol.h',
+  'src/foot-features.c', 'src/foot-features.h',
+  'src/macros.h',
+  'src/util.h',
   version,
   dependencies: [tllist, utf8proc],
   link_with: common,
+  include_directories: source_inc,
   install: true)
 
 install_data(

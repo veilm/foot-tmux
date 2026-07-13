@@ -3,9 +3,9 @@
 #endif
 #undef NDEBUG
 
-#include "../log.h"
+#include "log.h"
 
-#include "../config.c"
+#include "../src/config.c"
 
 #define ALEN(v) (sizeof(v) / sizeof((v)[0]))
 
