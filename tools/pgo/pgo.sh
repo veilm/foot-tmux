@@ -19,7 +19,7 @@ shift 3
 #     exit 1
 # fi
 
-if [ ! -f "${srcdir}"/generate-version.sh ]; then
+if [ ! -f "${srcdir}"/tools/generate-version.sh ]; then
    echo "error: ${srcdir}: does not appear to be a foot source directory"
    exit 1
 fi
@@ -101,7 +101,7 @@ if [ ${do_pgo} = yes ]; then
 
     # Run mode-dependent script to generate profiling data
     export LLVM_PROFILE_FILE="${blddir}/default_%m.profraw"
-    "${srcdir}"/pgo/${mode}.sh "${srcdir}" "${blddir}"
+    "${srcdir}"/tools/pgo/${mode}.sh "${srcdir}" "${blddir}"
 
     if [ ${compiler} = clang ]; then
         llvm-profdata \

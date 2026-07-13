@@ -5,7 +5,7 @@
 
 #include "log.h"
 
-#include "../src/config.c"
+#include "../config.c"
 
 #define ALEN(v) (sizeof(v) / sizeof((v)[0]))
 

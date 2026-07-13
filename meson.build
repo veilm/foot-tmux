@@ -214,7 +214,7 @@ foreach prot : wl_proto_xml
 endforeach
 
 env = find_program('env', native: true)
-generate_version_sh = files('generate-version.sh')
+generate_version_sh = files('tools/generate-version.sh')
 version = custom_target(
   'generate_version',
   build_always_stale: true,
@@ -222,8 +222,8 @@ version = custom_target(
   command: [env, 'LC_ALL=C', generate_version_sh, meson.project_version(), '@CURRENT_SOURCE_DIR@', '@OUTPUT@'])
 
 python = find_program('python3', native: true)
-generate_builtin_terminfo_py = files('scripts/generate-builtin-terminfo.py')
-foot_terminfo = files('foot.info')
+generate_builtin_terminfo_py = files('tools/generate-builtin-terminfo.py')
+foot_terminfo = files('data/terminfo/foot.info')
 builtin_terminfo = custom_target(
   'generate_builtin_terminfo',
   output: 'foot-terminfo.h',
@@ -231,15 +231,15 @@ builtin_terminfo = custom_target(
             '@default_terminfo@', foot_terminfo, 'foot', '@OUTPUT@']
 )
 
-generate_emoji_variation_sequences = files('scripts/generate-emoji-variation-sequences.py')
+generate_emoji_variation_sequences = files('tools/generate-emoji-variation-sequences.py')
 emoji_variation_sequences = custom_target(
   'generate_emoji_variation_sequences',
-  input: 'unicode/emoji-variation-sequences.txt',
+  input: 'data/unicode/emoji-variation-sequences.txt',
   output: 'emoji-variation-sequences.h',
   command: [python, generate_emoji_variation_sequences, '@INPUT@', '@OUTPUT@']
 )
 
-generate_srgb_funcs = files('scripts/srgb.py')
+generate_srgb_funcs = files('tools/srgb.py')
 srgb_funcs = custom_target(
   'generate_srgb_funcs',
   output: ['srgb.c', 'srgb.h'],
@@ -310,7 +310,7 @@ tokenize = static_library(
 if get_option('b_pgo') == 'generate'
   executable(
     'pgo',
-    'pgo/pgo.c',
+    'tools/pgo/pgo.c',
     wl_proto_src + wl_proto_headers,
     dependencies: [math, threads, libepoll, pixman, wayland_client, xkb, utf8proc, fcft, tllist],
     link_with: pgolib,
@@ -366,7 +366,9 @@ executable(
   install: true)
 
 install_data(
-  'foot.desktop', 'foot-server.desktop', 'footclient.desktop',
+  'data/applications/foot.desktop',
+  'data/applications/foot-server.desktop',
+  'data/applications/footclient.desktop',
   install_dir: join_paths(get_option('datadir'), 'applications'))
 
 systemd = dependency('systemd', required: false)
@@ -384,27 +386,27 @@ if systemd.found() or custom_systemd_units_dir != ''
 
   configure_file(
     configuration: configuration,
-    input: 'foot-server.service.in',
+    input: 'data/systemd/foot-server.service.in',
     output: '@BASENAME@',
     install_dir: systemd_units_dir
     )
 
   install_data(
-    'foot-server.socket',
+    'data/systemd/foot-server.socket',
     install_dir: systemd_units_dir)
 endif
 
 scdoc = dependency('scdoc', native: true, required: get_option('docs'))
-install_data('foot.ini', install_dir: join_paths(get_option('sysconfdir'), 'xdg', 'foot'))
+install_data('data/config/foot.ini', install_dir: join_paths(get_option('sysconfdir'), 'xdg', 'foot'))
 if scdoc.found()
   install_data(
-    'LICENSE', 'README.md', 'CHANGELOG.md',
+    'LICENSE', 'README.md', 'docs/CHANGELOG.md',
     install_dir: join_paths(get_option('datadir'), 'doc', 'foot'))
-  subdir('doc')
+  subdir('docs')
 endif
 
 if get_option('themes')
-  install_subdir('themes', install_dir: join_paths(get_option('datadir'), 'foot'))
+  install_subdir('data/themes', install_dir: join_paths(get_option('datadir'), 'foot'))
 endif
 
 terminfo_base_name = get_option('terminfo-base-name')
@@ -421,7 +423,7 @@ if tic.found()
   )
 
   preprocessed = configure_file(
-    input: 'foot.info',
+    input: 'data/terminfo/foot.info',
     output: 'foot.info.preprocessed',
     configuration: conf_data,
   )
@@ -435,12 +437,12 @@ if tic.found()
   )
 endif
 
-subdir('completions')
-subdir('icons')
-subdir('utils')
+subdir('data/completions')
+subdir('data/icons')
+subdir('tools/utils')
 
 if (get_option('tests'))
-  subdir('tests')
+  subdir('src/tests')
 endif
 
 summary(

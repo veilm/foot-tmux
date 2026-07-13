@@ -12,13 +12,13 @@ Changes:
   with `window-border-animation-enabled=yes`. a test config is available at
   `examples/tmux-active-pane-border.conf`, or add hooks like:
   ```
-  set-hook -g client-attached       'run-shell -b "sh /home/light/src/foot-tmux/scripts/foot-tmux-pane-report #{client_tty}"'
-  set-hook -g client-resized        'run-shell -b "sh /home/light/src/foot-tmux/scripts/foot-tmux-pane-report #{client_tty}"'
-  set-hook -g window-resized        'run-shell -b "sh /home/light/src/foot-tmux/scripts/foot-tmux-pane-report #{client_tty}"'
-  set-hook -g window-layout-changed 'run-shell -b "sh /home/light/src/foot-tmux/scripts/foot-tmux-pane-report #{client_tty}"'
-  set-hook -g window-pane-changed   'run-shell -b "sh /home/light/src/foot-tmux/scripts/foot-tmux-pane-report #{client_tty}"'
-  set-hook -g session-window-changed 'run-shell -b "sh /home/light/src/foot-tmux/scripts/foot-tmux-pane-report #{client_tty}"'
-  run-shell -b "sh /home/light/src/foot-tmux/scripts/foot-tmux-pane-report #{client_tty}"
+  set-hook -g client-attached       'run-shell -b "sh /home/light/src/foot-tmux/tools/foot-tmux-pane-report #{client_tty}"'
+  set-hook -g client-resized        'run-shell -b "sh /home/light/src/foot-tmux/tools/foot-tmux-pane-report #{client_tty}"'
+  set-hook -g window-resized        'run-shell -b "sh /home/light/src/foot-tmux/tools/foot-tmux-pane-report #{client_tty}"'
+  set-hook -g window-layout-changed 'run-shell -b "sh /home/light/src/foot-tmux/tools/foot-tmux-pane-report #{client_tty}"'
+  set-hook -g window-pane-changed   'run-shell -b "sh /home/light/src/foot-tmux/tools/foot-tmux-pane-report #{client_tty}"'
+  set-hook -g session-window-changed 'run-shell -b "sh /home/light/src/foot-tmux/tools/foot-tmux-pane-report #{client_tty}"'
+  run-shell -b "sh /home/light/src/foot-tmux/tools/foot-tmux-pane-report #{client_tty}"
   ```
 
 Install:
@@ -30,7 +30,7 @@ cd foot-tmux
 
 Original README:
 
-# ![Logo: a terminal with a foot shaped prompt](icons/hicolor/48x48/apps/foot.png) foot
+# ![Logo: a terminal with a foot shaped prompt](data/icons/hicolor/48x48/apps/foot.png) foot
 
 The fast, lightweight and minimalistic Wayland terminal emulator.
 
@@ -78,7 +78,7 @@ The fast, lightweight and minimalistic Wayland terminal emulator.
 
 ## Features
 
-* Fast (see [benchmarks](doc/benchmark.md), and
+* Fast (see [benchmarks](docs/benchmark.md), and
   [performance](https://codeberg.org/dnkl/foot/wiki/Performance))
 * Lightweight, in dependencies, on-disk and in-memory
 * Wayland native
@@ -97,12 +97,12 @@ The fast, lightweight and minimalistic Wayland terminal emulator.
 * [Synchronized Updates](https://gitlab.freedesktop.org/terminal-wg/specifications/-/merge_requests/2) support
 * [Sixel image support](https://en.wikipedia.org/wiki/Sixel)
 
-  ![tux-with-foot](doc/sixel-tux-foot.png "Sixel screenshot")
+  ![tux-with-foot](docs/sixel-tux-foot.png "Sixel screenshot")
 
 
 # Installing
 
-See [INSTALL.md](INSTALL.md).
+See [INSTALL.md](docs/INSTALL.md).
 
 
 ## Configuration
@@ -681,12 +681,7 @@ where `$(uname -s)` is the name of the OS foot was compiled for.
 # Credits
 
 * [Ordoviz](https://codeberg.org/Ordoviz), for designing and
-contributing foot's [logo](icons/hicolor/48x48/apps/foot.png).
-
-
-# Code of Conduct
-
-See [Code of Conduct](CODE_OF_CONDUCT.md)
+contributing foot's [logo](data/icons/hicolor/48x48/apps/foot.png).
 
 
 # Bugs

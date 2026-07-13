@@ -5,7 +5,7 @@ set -eux
 srcdir=$(realpath "${1}")
 blddir=$(realpath "${2}")
 
-. "${srcdir}"/pgo/options
+. "${srcdir}"/tools/pgo/options
 
 pgo_data=$(mktemp)
 trap "rm -f '${pgo_data}'" EXIT INT HUP TERM
@@ -15,7 +15,7 @@ rm -f "${blddir}"/pgo-ok
 # To ensure profiling data is generated in the build directory
 cd "${blddir}"
 
-"${blddir}"/utils/xtgettcap
+"${blddir}"/tools/utils/xtgettcap
 "${blddir}"/footclient --version
 "${blddir}"/foot \
            --config=/dev/null \
@@ -24,7 +24,7 @@ cd "${blddir}"
         sh -c "
           set -eux
 
-         '${srcdir}/scripts/generate-alt-random-writes.py' \
+         '${srcdir}/tools/generate-alt-random-writes.py' \
             ${script_options} \"${pgo_data}\"
 
          cat \"${pgo_data}\"

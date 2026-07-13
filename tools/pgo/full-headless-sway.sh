@@ -15,7 +15,7 @@ cleanup() {
 trap cleanup EXIT INT HUP TERM
 
 # Generate a custom config that executes our generate-pgo-data script
-> "${sway_conf}" echo "exec '${srcdir}'/pgo/full-headless-sway-inner.sh '${srcdir}' '${blddir}'"
+> "${sway_conf}" echo "exec '${srcdir}'/tools/pgo/full-headless-sway-inner.sh '${srcdir}' '${blddir}'"
 
 # Run Sway. full-headless-sway-inner.sh ends with a 'swaymsg exit'
 XDG_RUNTIME_DIR="${runtime_dir}" WLR_RENDERER=pixman WLR_BACKENDS=headless sway -c "${sway_conf}" --unsupported-gpu
