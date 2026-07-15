@@ -14,11 +14,11 @@ Changes:
   ```
   set-hook -g client-attached       'run-shell -b "sh /home/light/src/foot-tmux/tools/foot-tmux-pane-report #{client_tty}"'
   set-hook -g client-resized        'run-shell -b "sh /home/light/src/foot-tmux/tools/foot-tmux-pane-report #{client_tty}"'
-  set-hook -g window-resized        'run-shell -b "sh /home/light/src/foot-tmux/tools/foot-tmux-pane-report #{client_tty}"'
-  set-hook -g window-layout-changed 'run-shell -b "sh /home/light/src/foot-tmux/tools/foot-tmux-pane-report #{client_tty}"'
-  set-hook -g window-pane-changed   'run-shell -b "sh /home/light/src/foot-tmux/tools/foot-tmux-pane-report #{client_tty}"'
-  set-hook -g session-window-changed 'run-shell -b "sh /home/light/src/foot-tmux/tools/foot-tmux-pane-report #{client_tty}"'
-  run-shell -b "sh /home/light/src/foot-tmux/tools/foot-tmux-pane-report #{client_tty}"
+  set-hook -g window-resized        'run-shell -b "sh /home/light/src/foot-tmux/tools/foot-tmux-pane-report"'
+  set-hook -g window-layout-changed 'run-shell -b "sh /home/light/src/foot-tmux/tools/foot-tmux-pane-report"'
+  set-hook -g window-pane-changed   'run-shell -b "sh /home/light/src/foot-tmux/tools/foot-tmux-pane-report"'
+  set-hook -g session-window-changed 'run-shell -b "sh /home/light/src/foot-tmux/tools/foot-tmux-pane-report"'
+  run-shell -b "sh /home/light/src/foot-tmux/tools/foot-tmux-pane-report"
   ```
 
 Install:
