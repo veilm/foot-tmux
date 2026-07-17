@@ -962,6 +962,15 @@ applications can change these at runtime.
 	enabled. Expressed in milliseconds between each blink. Default:
 	_500_.
 
+*smooth-beam-movement*
+	Boolean. When enabled, a beam styled cursor moves smoothly between
+	its old and new positions. Other cursor styles are unaffected.
+	Default: _no_.
+
+*smooth-beam-movement-duration*
+	Duration of smooth beam cursor movement, in milliseconds. A value
+	of zero makes movement immediate. Default: _120_.
+
 *beam-thickness*
 	Thickness (width) of the beam styled cursor. The value is in
 	points, and its exact value thus depends on the monitor's DPI. To

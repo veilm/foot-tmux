@@ -442,6 +442,18 @@ struct tmux_pane_border_animation {
     struct tmux_pane_border_rect to;
 };
 
+struct beam_cursor_animation {
+    bool initialized;
+    bool active;
+    int target_x;
+    int target_y;
+    float from_x;
+    float from_y;
+    float current_x;
+    float current_y;
+    struct timespec started_at;
+};
+
 struct terminal {
     struct fdm *fdm;
     struct reaper *reaper;
@@ -759,6 +771,8 @@ struct terminal {
             int col;
             bool hidden;
         } last_cursor;
+
+        struct beam_cursor_animation beam_cursor_animation;
 
         struct buffer *last_buf;     /* Buffer we rendered to last time */
         size_t frames_since_last_immediate_release;

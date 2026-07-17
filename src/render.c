@@ -547,6 +547,96 @@ rect_lerp(int from, int to, float t)
     return roundf(from + (to - from) * t);
 }
 
+static float
+float_lerp(float from, float to, float t)
+{
+    return from + (to - from) * t;
+}
+
+static float
+beam_cursor_animation_progress(const struct terminal *term,
+                               const struct timespec *now)
+{
+    const struct timespec *started =
+        &term->render.beam_cursor_animation.started_at;
+    struct timespec elapsed;
+    timespec_sub(now, started, &elapsed);
+
+    const double elapsed_ms =
+        elapsed.tv_sec * 1000. + elapsed.tv_nsec / 1000000.;
+    const uint16_t duration =
+        term->conf->cursor.smooth_beam_movement_duration_ms;
+    return duration > 0
+        ? window_border_ease_out_cubic(elapsed_ms / duration)
+        : 1.;
+}
+
+static void
+beam_cursor_animation_update_position(struct terminal *term,
+                                      const struct timespec *now)
+{
+    struct beam_cursor_animation *anim =
+        &term->render.beam_cursor_animation;
+    const float t = beam_cursor_animation_progress(term, now);
+
+    anim->current_x = float_lerp(anim->from_x, anim->target_x, t);
+    anim->current_y = float_lerp(anim->from_y, anim->target_y, t);
+    if (t >= 1.)
+        anim->active = false;
+}
+
+static void
+beam_cursor_animation_prepare(struct terminal *term, const struct coord *cursor)
+{
+    struct beam_cursor_animation *anim =
+        &term->render.beam_cursor_animation;
+
+    if (!term->conf->cursor.smooth_beam_movement ||
+        term->cursor_style != CURSOR_BEAM || term->hide_cursor ||
+        !term->kbd_focus || cursor->row < 0)
+    {
+        anim->initialized = false;
+        anim->active = false;
+        return;
+    }
+
+    const int target_x = render_x_for_col(term, cursor->col);
+    const int target_y = term->margins.top + cursor->row * term->cell_height;
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+
+    if (!anim->initialized) {
+        anim->initialized = true;
+        anim->target_x = target_x;
+        anim->target_y = target_y;
+        anim->from_x = target_x;
+        anim->from_y = target_y;
+        anim->current_x = target_x;
+        anim->current_y = target_y;
+        return;
+    }
+
+    if (anim->active)
+        beam_cursor_animation_update_position(term, &now);
+
+    if (target_x != anim->target_x || target_y != anim->target_y) {
+        anim->from_x = anim->current_x;
+        anim->from_y = anim->current_y;
+        anim->target_x = target_x;
+        anim->target_y = target_y;
+        anim->started_at = now;
+        anim->active = true;
+    }
+
+    if (!anim->active)
+        return;
+
+    beam_cursor_animation_update_position(term, &now);
+    term_damage_view(term);
+    if (anim->active)
+        render_refresh(term);
+}
+
 static bool
 tmux_pane_border_target_rect(const struct terminal *term,
                              struct tmux_pane_border_rect *rect)
@@ -945,6 +1035,12 @@ draw_cursor(const struct terminal *term, const struct cell *cell,
         if (likely(term->cursor_blink.state == CURSOR_BLINK_ON ||
                    !term->kbd_focus))
         {
+            if (term->conf->cursor.smooth_beam_movement &&
+                term->render.beam_cursor_animation.initialized)
+            {
+                x = roundf(term->render.beam_cursor_animation.current_x);
+                y = roundf(term->render.beam_cursor_animation.current_y);
+            }
             draw_beam_cursor(term, pix, font, &cursor_color, x, y);
         }
         break;
@@ -1493,6 +1589,12 @@ render_cell(struct terminal *term, pixman_image_t *pix,
 draw_cursor:
     if (has_cursor && (term->cursor_style != CURSOR_BLOCK || !term->kbd_focus)) {
         const pixman_color_t bg_without_alpha = color_hex_to_pixman(_bg, gamma_correct);
+        if (term->cursor_style == CURSOR_BEAM &&
+            term->conf->cursor.smooth_beam_movement)
+        {
+            /* The interpolated beam is usually outside its target cell. */
+            pixman_image_set_clip_region32(pix, NULL);
+        }
         draw_cursor(term, cell, font, pix, &fg, &bg_without_alpha, x, y, cell_cols);
     }
 
@@ -3875,6 +3977,8 @@ grid_render(struct terminal *term)
 
     if (!render_separator_geometry_prepare(term))
         LOG_WARN("failed to prepare separator geometry");
+
+    beam_cursor_animation_prepare(term, &cursor);
 
     if (term->conf->tweak.overflowing_glyphs) {
         /*
