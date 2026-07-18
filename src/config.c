@@ -1697,12 +1697,12 @@ parse_section_cursor(struct context *ctx)
     else if (streq(key, "blink-rate"))
         return value_to_uint32(ctx, 10, &conf->cursor.blink.rate_ms);
 
-    else if (streq(key, "smooth-beam-movement"))
-        return value_to_bool(ctx, &conf->cursor.smooth_beam_movement);
+    else if (streq(key, "smooth-cursor-movement"))
+        return value_to_bool(ctx, &conf->cursor.smooth_cursor_movement);
 
-    else if (streq(key, "smooth-beam-movement-duration"))
+    else if (streq(key, "smooth-cursor-movement-duration"))
         return value_to_uint16(
-            ctx, 10, &conf->cursor.smooth_beam_movement_duration_ms);
+            ctx, 10, &conf->cursor.smooth_cursor_movement_duration_ms);
 
     else if (streq(key, "beam-thickness"))
         return value_to_pt_or_px(ctx, &conf->cursor.beam_thickness);
@@ -3587,8 +3587,8 @@ config_load(struct config *conf, const char *conf_path,
                 .enabled = false,
                 .rate_ms = 500,
             },
-            .smooth_beam_movement = false,
-            .smooth_beam_movement_duration_ms = 120,
+            .smooth_cursor_movement = false,
+            .smooth_cursor_movement_duration_ms = 120,
             .beam_thickness = {.pt = 1.5},
             .underline_thickness = {.pt = 0., .px = -1},
         },

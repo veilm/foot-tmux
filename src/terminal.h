@@ -442,7 +442,7 @@ struct tmux_pane_border_animation {
     struct tmux_pane_border_rect to;
 };
 
-struct beam_cursor_animation {
+struct cursor_movement_animation {
     bool initialized;
     bool active;
     int target_x;
@@ -772,7 +772,7 @@ struct terminal {
             bool hidden;
         } last_cursor;
 
-        struct beam_cursor_animation beam_cursor_animation;
+        struct cursor_movement_animation cursor_movement_animation;
 
         struct buffer *last_buf;     /* Buffer we rendered to last time */
         size_t frames_since_last_immediate_release;

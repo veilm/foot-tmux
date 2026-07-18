@@ -554,30 +554,30 @@ float_lerp(float from, float to, float t)
 }
 
 static float
-beam_cursor_animation_progress(const struct terminal *term,
-                               const struct timespec *now)
+cursor_movement_animation_progress(const struct terminal *term,
+                                   const struct timespec *now)
 {
     const struct timespec *started =
-        &term->render.beam_cursor_animation.started_at;
+        &term->render.cursor_movement_animation.started_at;
     struct timespec elapsed;
     timespec_sub(now, started, &elapsed);
 
     const double elapsed_ms =
         elapsed.tv_sec * 1000. + elapsed.tv_nsec / 1000000.;
     const uint16_t duration =
-        term->conf->cursor.smooth_beam_movement_duration_ms;
+        term->conf->cursor.smooth_cursor_movement_duration_ms;
     return duration > 0
         ? window_border_ease_out_cubic(elapsed_ms / duration)
         : 1.;
 }
 
 static void
-beam_cursor_animation_update_position(struct terminal *term,
-                                      const struct timespec *now)
+cursor_movement_animation_update_position(struct terminal *term,
+                                          const struct timespec *now)
 {
-    struct beam_cursor_animation *anim =
-        &term->render.beam_cursor_animation;
-    const float t = beam_cursor_animation_progress(term, now);
+    struct cursor_movement_animation *anim =
+        &term->render.cursor_movement_animation;
+    const float t = cursor_movement_animation_progress(term, now);
 
     anim->current_x = float_lerp(anim->from_x, anim->target_x, t);
     anim->current_y = float_lerp(anim->from_y, anim->target_y, t);
@@ -586,13 +586,13 @@ beam_cursor_animation_update_position(struct terminal *term,
 }
 
 static void
-beam_cursor_animation_prepare(struct terminal *term, const struct coord *cursor)
+cursor_movement_animation_prepare(struct terminal *term,
+                                  const struct coord *cursor)
 {
-    struct beam_cursor_animation *anim =
-        &term->render.beam_cursor_animation;
+    struct cursor_movement_animation *anim =
+        &term->render.cursor_movement_animation;
 
-    if (!term->conf->cursor.smooth_beam_movement ||
-        term->cursor_style != CURSOR_BEAM || term->hide_cursor ||
+    if (!term->conf->cursor.smooth_cursor_movement || term->hide_cursor ||
         !term->kbd_focus || cursor->row < 0)
     {
         anim->initialized = false;
@@ -617,7 +617,7 @@ beam_cursor_animation_prepare(struct terminal *term, const struct coord *cursor)
     }
 
     if (anim->active)
-        beam_cursor_animation_update_position(term, &now);
+        cursor_movement_animation_update_position(term, &now);
 
     if (target_x != anim->target_x || target_y != anim->target_y) {
         anim->from_x = anim->current_x;
@@ -631,7 +631,7 @@ beam_cursor_animation_prepare(struct terminal *term, const struct coord *cursor)
     if (!anim->active)
         return;
 
-    beam_cursor_animation_update_position(term, &now);
+    cursor_movement_animation_update_position(term, &now);
     term_damage_view(term);
     if (anim->active)
         render_refresh(term);
@@ -1019,6 +1019,13 @@ draw_cursor(const struct terminal *term, const struct cell *cell,
         }
     }
 
+    if (term->conf->cursor.smooth_cursor_movement &&
+        term->render.cursor_movement_animation.initialized)
+    {
+        x = roundf(term->render.cursor_movement_animation.current_x);
+        y = roundf(term->render.cursor_movement_animation.current_y);
+    }
+
     switch (term->cursor_style) {
     case CURSOR_BLOCK:
         if (likely(term->cursor_blink.state == CURSOR_BLINK_ON) ||
@@ -1035,12 +1042,6 @@ draw_cursor(const struct terminal *term, const struct cell *cell,
         if (likely(term->cursor_blink.state == CURSOR_BLINK_ON ||
                    !term->kbd_focus))
         {
-            if (term->conf->cursor.smooth_beam_movement &&
-                term->render.beam_cursor_animation.initialized)
-            {
-                x = roundf(term->render.beam_cursor_animation.current_x);
-                y = roundf(term->render.beam_cursor_animation.current_y);
-            }
             draw_beam_cursor(term, pix, font, &cursor_color, x, y);
         }
         break;
@@ -1436,7 +1437,12 @@ render_cell(struct terminal *term, pixman_image_t *pix,
         mtx_unlock(&term->render.workers.lock);
     }
 
-    if (unlikely(has_cursor && term->cursor_style == CURSOR_BLOCK && term->kbd_focus)) {
+    const bool animated_block =
+        term->conf->cursor.smooth_cursor_movement &&
+        term->render.cursor_movement_animation.active;
+    if (unlikely(has_cursor && term->cursor_style == CURSOR_BLOCK &&
+                 term->kbd_focus && !animated_block))
+    {
         const pixman_color_t bg_without_alpha = color_hex_to_pixman(_bg, gamma_correct);
         draw_cursor(term, cell, font, pix, &fg, &bg_without_alpha, x, y, cell_cols);
     }
@@ -1587,12 +1593,14 @@ render_cell(struct terminal *term, pixman_image_t *pix,
     }
 
 draw_cursor:
-    if (has_cursor && (term->cursor_style != CURSOR_BLOCK || !term->kbd_focus)) {
+    if (has_cursor && (term->cursor_style != CURSOR_BLOCK ||
+                       !term->kbd_focus || animated_block))
+    {
         const pixman_color_t bg_without_alpha = color_hex_to_pixman(_bg, gamma_correct);
-        if (term->cursor_style == CURSOR_BEAM &&
-            term->conf->cursor.smooth_beam_movement)
+        if (term->conf->cursor.smooth_cursor_movement &&
+            term->render.cursor_movement_animation.initialized)
         {
-            /* The interpolated beam is usually outside its target cell. */
+            /* The interpolated cursor is usually outside its target cell. */
             pixman_image_set_clip_region32(pix, NULL);
         }
         draw_cursor(term, cell, font, pix, &fg, &bg_without_alpha, x, y, cell_cols);
@@ -1607,8 +1615,14 @@ render_row(struct terminal *term, pixman_image_t *pix,
            pixman_region32_t *damage, struct row *row,
            int row_no, int cursor_col)
 {
-    for (int col = term->cols - 1; col >= 0; col--)
-        render_cell(term, pix, damage, row, row_no, col, cursor_col == col);
+    for (int col = term->cols - 1; col >= 0; col--) {
+        if (col != cursor_col)
+            render_cell(term, pix, damage, row, row_no, col, false);
+    }
+
+    /* An animated cursor can overlap other cells and must be drawn last. */
+    if (cursor_col >= 0)
+        render_cell(term, pix, damage, row, row_no, cursor_col, true);
 }
 
 static void
@@ -3978,7 +3992,7 @@ grid_render(struct terminal *term)
     if (!render_separator_geometry_prepare(term))
         LOG_WARN("failed to prepare separator geometry");
 
-    beam_cursor_animation_prepare(term, &cursor);
+    cursor_movement_animation_prepare(term, &cursor);
 
     if (term->conf->tweak.overflowing_glyphs) {
         /*

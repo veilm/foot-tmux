@@ -962,13 +962,13 @@ applications can change these at runtime.
 	enabled. Expressed in milliseconds between each blink. Default:
 	_500_.
 
-*smooth-beam-movement*
-	Boolean. When enabled, a beam styled cursor moves smoothly between
-	its old and new positions. Other cursor styles are unaffected.
-	Default: _no_.
+*smooth-cursor-movement*
+	Boolean. When enabled, the text cursor moves smoothly between its
+	old and new positions. Applies to block, beam, underline and hollow
+	cursor styles. Default: _no_.
 
-*smooth-beam-movement-duration*
-	Duration of smooth beam cursor movement, in milliseconds. A value
+*smooth-cursor-movement-duration*
+	Duration of smooth cursor movement, in milliseconds. A value
 	of zero makes movement immediate. Default: _120_.
 
 *beam-thickness*
