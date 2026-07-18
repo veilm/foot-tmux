@@ -3,6 +3,15 @@
 This is a foot fork with some minor UX changes that I like. The original source, as of March 2026, is on [codeberg](https://codeberg.org/dnkl/foot).
 
 Changes:
+- text cursors can move smoothly between cells. enable this under `[cursor]`:
+  ```ini
+  smooth-cursor-movement=yes
+  smooth-cursor-movement-duration=120
+  smooth-cursor-movement-target-text=halfway
+  ```
+  this applies to block, beam, underline, and hollow cursors. for block
+  cursors, `smooth-cursor-movement-target-text` controls when the destination
+  glyph switches to the cursor text color: `end`, `halfway`, or `start`.
 - tmux pane separators can be rendered as transparent gaps. separator glyphs punch through completely, and columns that look like pane borders for almost the full height of the terminal are widened and made transparent across the whole column. this is aimed at `tmux` with `pane-border-lines double`, so panes can read more like separate Hyprland windows
   - one missing row is tolerated when detecting a full-height border column, which is mainly for the tmux status bar
   - if a fully transparent separator touches the edge of the terminal grid, the outer window padding is punched through on that edge too, so the gap stays clean all the way to the border

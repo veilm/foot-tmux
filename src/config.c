@@ -1700,9 +1700,15 @@ parse_section_cursor(struct context *ctx)
     else if (streq(key, "smooth-cursor-movement"))
         return value_to_bool(ctx, &conf->cursor.smooth_cursor_movement);
 
-    else if (streq(key, "smooth-cursor-movement-target-text-at-halfway"))
-        return value_to_bool(
-            ctx, &conf->cursor.smooth_cursor_movement_target_text_at_halfway);
+    else if (streq(key, "smooth-cursor-movement-target-text")) {
+        _Static_assert(
+            sizeof(conf->cursor.smooth_cursor_movement_target_text) == sizeof(int),
+            "enum is not 32-bit");
+
+        return value_to_enum(
+            ctx, (const char *[]) {"end", "halfway", "start", NULL},
+            (int *)&conf->cursor.smooth_cursor_movement_target_text);
+    }
 
     else if (streq(key, "smooth-cursor-movement-duration"))
         return value_to_uint16(
@@ -3592,7 +3598,7 @@ config_load(struct config *conf, const char *conf_path,
                 .rate_ms = 500,
             },
             .smooth_cursor_movement = false,
-            .smooth_cursor_movement_target_text_at_halfway = false,
+            .smooth_cursor_movement_target_text = CURSOR_MOVEMENT_TARGET_TEXT_END,
             .smooth_cursor_movement_duration_ms = 120,
             .beam_thickness = {.pt = 1.5},
             .underline_thickness = {.pt = 0., .px = -1},

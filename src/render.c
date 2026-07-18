@@ -1462,10 +1462,12 @@ render_cell(struct terminal *term, pixman_image_t *pix,
             draw_cursor(
                 term, cell, font, pix, &fg, &bg_without_alpha, x, y, cell_cols);
         } else if (
-            term->conf->cursor.smooth_cursor_movement_target_text_at_halfway &&
-            cursor_movement_overlaps_target_halfway(
-                term, cell_cols * term->cell_width, term->cell_height))
-        {
+            term->conf->cursor.smooth_cursor_movement_target_text ==
+                CURSOR_MOVEMENT_TARGET_TEXT_START ||
+            (term->conf->cursor.smooth_cursor_movement_target_text ==
+                 CURSOR_MOVEMENT_TARGET_TEXT_HALFWAY &&
+             cursor_movement_overlaps_target_halfway(
+                 term, cell_cols * term->cell_width, term->cell_height))) {
             pixman_color_t cursor_color;
             pixman_color_t text_color;
             cursor_colors_for_cell(

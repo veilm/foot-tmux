@@ -971,10 +971,16 @@ applications can change these at runtime.
 	Duration of smooth cursor movement, in milliseconds. A value
 	of zero makes movement immediate. Default: _120_.
 
-*smooth-cursor-movement-target-text-at-halfway*
-	Boolean. For an animated block cursor, apply the cursor's text color
-	to the destination cell once at least half of the moving block overlaps
-	the destination cell, instead of when the cursor lands. Default: _no_.
+*smooth-cursor-movement-target-text*
+	Controls when an animated block cursor applies the cursor's text color
+	to its destination cell. Possible values are:
+
+	- end: when the cursor finishes moving.
+	- halfway: once at least half of the moving block overlaps the
+	  destination cell.
+	- start: as soon as movement starts.
+
+	Default: _end_.
 
 *beam-thickness*
 	Thickness (width) of the beam styled cursor. The value is in

@@ -662,10 +662,16 @@ test_section_cursor(void)
     test_uint32(&ctx, &parse_section_cursor, "blink-rate", &conf.cursor.blink.rate_ms);
     test_boolean(&ctx, &parse_section_cursor, "smooth-cursor-movement",
                  &conf.cursor.smooth_cursor_movement);
-    test_boolean(
-        &ctx, &parse_section_cursor,
-        "smooth-cursor-movement-target-text-at-halfway",
-        &conf.cursor.smooth_cursor_movement_target_text_at_halfway);
+    test_enum(
+        &ctx, &parse_section_cursor, "smooth-cursor-movement-target-text",
+        3,
+        (const char *[]) {"end", "halfway", "start"},
+        (int []) {
+            CURSOR_MOVEMENT_TARGET_TEXT_END,
+            CURSOR_MOVEMENT_TARGET_TEXT_HALFWAY,
+            CURSOR_MOVEMENT_TARGET_TEXT_START,
+        },
+        (int *)&conf.cursor.smooth_cursor_movement_target_text);
     test_uint16(&ctx, &parse_section_cursor, "smooth-cursor-movement-duration",
                 &conf.cursor.smooth_cursor_movement_duration_ms);
     test_pt_or_px(&ctx, &parse_section_cursor, "beam-thickness",

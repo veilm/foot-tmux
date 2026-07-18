@@ -34,6 +34,11 @@ enum cursor_unfocused_style {
     CURSOR_UNFOCUSED_HOLLOW,
     CURSOR_UNFOCUSED_NONE
 };
+enum cursor_movement_target_text {
+    CURSOR_MOVEMENT_TARGET_TEXT_END,
+    CURSOR_MOVEMENT_TARGET_TEXT_HALFWAY,
+    CURSOR_MOVEMENT_TARGET_TEXT_START,
+};
 
 enum conf_size_type {CONF_SIZE_PX, CONF_SIZE_CELLS};
 
@@ -351,7 +356,7 @@ struct config {
             uint32_t rate_ms;
         } blink;
         bool smooth_cursor_movement;
-        bool smooth_cursor_movement_target_text_at_halfway;
+        enum cursor_movement_target_text smooth_cursor_movement_target_text;
         uint16_t smooth_cursor_movement_duration_ms;
         struct pt_or_px beam_thickness;
         struct pt_or_px underline_thickness;
