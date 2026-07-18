@@ -351,6 +351,7 @@ struct config {
             uint32_t rate_ms;
         } blink;
         bool smooth_cursor_movement;
+        bool smooth_cursor_movement_target_text_at_start;
         uint16_t smooth_cursor_movement_duration_ms;
         struct pt_or_px beam_thickness;
         struct pt_or_px underline_thickness;

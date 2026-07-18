@@ -1700,6 +1700,10 @@ parse_section_cursor(struct context *ctx)
     else if (streq(key, "smooth-cursor-movement"))
         return value_to_bool(ctx, &conf->cursor.smooth_cursor_movement);
 
+    else if (streq(key, "smooth-cursor-movement-target-text-at-start"))
+        return value_to_bool(
+            ctx, &conf->cursor.smooth_cursor_movement_target_text_at_start);
+
     else if (streq(key, "smooth-cursor-movement-duration"))
         return value_to_uint16(
             ctx, 10, &conf->cursor.smooth_cursor_movement_duration_ms);
@@ -3588,6 +3592,7 @@ config_load(struct config *conf, const char *conf_path,
                 .rate_ms = 500,
             },
             .smooth_cursor_movement = false,
+            .smooth_cursor_movement_target_text_at_start = false,
             .smooth_cursor_movement_duration_ms = 120,
             .beam_thickness = {.pt = 1.5},
             .underline_thickness = {.pt = 0., .px = -1},

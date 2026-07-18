@@ -1437,14 +1437,24 @@ render_cell(struct terminal *term, pixman_image_t *pix,
         mtx_unlock(&term->render.workers.lock);
     }
 
+    pixman_color_t cursor_source_fg = fg;
     const bool animated_block =
         term->conf->cursor.smooth_cursor_movement &&
         term->render.cursor_movement_animation.active;
     if (unlikely(has_cursor && term->cursor_style == CURSOR_BLOCK &&
-                 term->kbd_focus && !animated_block))
-    {
+                 term->kbd_focus)) {
         const pixman_color_t bg_without_alpha = color_hex_to_pixman(_bg, gamma_correct);
-        draw_cursor(term, cell, font, pix, &fg, &bg_without_alpha, x, y, cell_cols);
+        if (!animated_block) {
+            draw_cursor(
+                term, cell, font, pix, &fg, &bg_without_alpha, x, y, cell_cols);
+        } else if (term->conf->cursor.smooth_cursor_movement_target_text_at_start) {
+            pixman_color_t cursor_color;
+            pixman_color_t text_color;
+            cursor_colors_for_cell(
+                term, cell, &cursor_source_fg, &bg_without_alpha,
+                &cursor_color, &text_color, gamma_correct);
+            fg = text_color;
+        }
     }
 
     if (cell->wc == 0 || cell->wc >= CELL_SPACER || cell->wc == U'\t' ||
@@ -1603,7 +1613,8 @@ draw_cursor:
             /* The interpolated cursor is usually outside its target cell. */
             pixman_image_set_clip_region32(pix, NULL);
         }
-        draw_cursor(term, cell, font, pix, &fg, &bg_without_alpha, x, y, cell_cols);
+        draw_cursor(term, cell, font, pix, &cursor_source_fg,
+                    &bg_without_alpha, x, y, cell_cols);
     }
 
     pixman_image_set_clip_region32(pix, NULL);

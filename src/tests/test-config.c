@@ -662,6 +662,10 @@ test_section_cursor(void)
     test_uint32(&ctx, &parse_section_cursor, "blink-rate", &conf.cursor.blink.rate_ms);
     test_boolean(&ctx, &parse_section_cursor, "smooth-cursor-movement",
                  &conf.cursor.smooth_cursor_movement);
+    test_boolean(
+        &ctx, &parse_section_cursor,
+        "smooth-cursor-movement-target-text-at-start",
+        &conf.cursor.smooth_cursor_movement_target_text_at_start);
     test_uint16(&ctx, &parse_section_cursor, "smooth-cursor-movement-duration",
                 &conf.cursor.smooth_cursor_movement_duration_ms);
     test_pt_or_px(&ctx, &parse_section_cursor, "beam-thickness",
