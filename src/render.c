@@ -726,6 +726,7 @@ tmux_pane_border_render_rect(struct terminal *term)
     }
 
     term_damage_view(term);
+    term_damage_margins(term);
     render_refresh(term);
 
     return (struct tmux_pane_border_rect){
@@ -3936,6 +3937,7 @@ grid_render(struct terminal *term)
         term->render.margins)
     {
         force_full_repaint(term, buf);
+        term->render.margins = false;
     }
 
     else if (buf->age > 0) {

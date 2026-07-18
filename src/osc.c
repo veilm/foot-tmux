@@ -173,6 +173,7 @@ osc_foot_tmux_pane(struct terminal *term, char *string)
         term->tmux_pane.valid = false;
         term->tmux_pane_border_animation.active = false;
         term_damage_view(term);
+        term_damage_margins(term);
         render_refresh(term);
         return;
     }
@@ -265,6 +266,7 @@ osc_foot_tmux_pane(struct terminal *term, char *string)
     }
 
     term_damage_view(term);
+    term_damage_margins(term);
     render_refresh(term);
     return;
 
