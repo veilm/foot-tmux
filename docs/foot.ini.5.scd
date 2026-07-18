@@ -334,6 +334,8 @@ empty string to be set, but it must be quoted: *KEY=""*
 *window-border-enabled*
 	Boolean. When enabled, foot draws a border around the active tmux
 	pane reported by foot's private OSC 777 pane-geometry extension.
+	Pane edges at the outside of the terminal extend through any unused
+	cell-grid padding to the corresponding window edge.
 	Default: _no_.
 
 *window-border-animation-enabled*

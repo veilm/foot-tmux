@@ -18,7 +18,9 @@ Changes:
   - in hyprland, disabling shadows and borders is recommended
 - an opt-in active-pane border can be driven by tmux hooks. enable
   `window-border-enabled=yes` in foot. animation is separate and can be enabled
-  with `window-border-animation-enabled=yes`. a test config is available at
+  with `window-border-animation-enabled=yes`. outer pane borders extend through
+  any unused cell-grid padding to the window edge, so fractional leftover space
+  cannot peek out beyond the border. a test config is available at
   `examples/tmux-active-pane-border.conf`, or add hooks like:
   ```
   set-hook -g client-attached       'run-shell -b "sh /home/light/src/foot-tmux/tools/foot-tmux-pane-report #{client_tty}"'
