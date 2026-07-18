@@ -638,6 +638,20 @@ cursor_movement_animation_prepare(struct terminal *term,
 }
 
 static bool
+cursor_movement_overlaps_target_halfway(const struct terminal *term,
+                                        int width, int height)
+{
+    const struct cursor_movement_animation *anim =
+        &term->render.cursor_movement_animation;
+    const float overlap_width =
+        fmaxf(0.f, width - fabsf(anim->current_x - anim->target_x));
+    const float overlap_height =
+        fmaxf(0.f, height - fabsf(anim->current_y - anim->target_y));
+
+    return overlap_width * overlap_height >= width * height * .5;
+}
+
+static bool
 tmux_pane_border_target_rect(const struct terminal *term,
                              struct tmux_pane_border_rect *rect)
 {
@@ -1447,7 +1461,11 @@ render_cell(struct terminal *term, pixman_image_t *pix,
         if (!animated_block) {
             draw_cursor(
                 term, cell, font, pix, &fg, &bg_without_alpha, x, y, cell_cols);
-        } else if (term->conf->cursor.smooth_cursor_movement_target_text_at_start) {
+        } else if (
+            term->conf->cursor.smooth_cursor_movement_target_text_at_halfway &&
+            cursor_movement_overlaps_target_halfway(
+                term, cell_cols * term->cell_width, term->cell_height))
+        {
             pixman_color_t cursor_color;
             pixman_color_t text_color;
             cursor_colors_for_cell(

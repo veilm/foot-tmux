@@ -664,8 +664,8 @@ test_section_cursor(void)
                  &conf.cursor.smooth_cursor_movement);
     test_boolean(
         &ctx, &parse_section_cursor,
-        "smooth-cursor-movement-target-text-at-start",
-        &conf.cursor.smooth_cursor_movement_target_text_at_start);
+        "smooth-cursor-movement-target-text-at-halfway",
+        &conf.cursor.smooth_cursor_movement_target_text_at_halfway);
     test_uint16(&ctx, &parse_section_cursor, "smooth-cursor-movement-duration",
                 &conf.cursor.smooth_cursor_movement_duration_ms);
     test_pt_or_px(&ctx, &parse_section_cursor, "beam-thickness",
